@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+
+homeos/backend/__pycache__/
+homeos/backend/agents/__pycache__/
+homeos/backend/graph/__pycache__/
+homeos/backend/routes/__pycache__/
+homeos/backend/tools/__pycache__/
+homeos/backend/vector_db/__pycache__/
+
+homeos/backend/data/homeos.db
+homeos/backend/data/meal_plan.json
+
+node_modules/
+dist/

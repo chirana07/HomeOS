@@ -1,0 +1,23 @@
+recipe_name,ingredients,meal_type,nutrition_score,recipe_summary,tags,ingredients_json,portion_per_person
+Vegetable Fried Rice,Rice;Carrots;Eggs;Soy Sauce;Cooking Oil,Lunch/Dinner,85,Wok-fried rice with carrots, scrambled eggs,"{""rice"": 150, ""carrots"": 50, ""eggs"": 2, ""soy sauce"": 15, ""cooking oil"": 10}",true
+Egg Rice Bowl,Rice;Eggs;Soy Sauce;Cooking Oil,Breakfast/Lunch,75,Steamed rice bowl topped with seasoned scrambled eggs and a savory soy glaze.,Budget;Quick,"{""rice"": 150, ""eggs"": 2, ""soy sauce"": 15, ""cooking oil"": 10}",true
+Carrot Stir Fry,Rice;Carrots;Eggs;Cooking Oil,Lunch/Dinner,80,Sautéed carrot ribbons with scrambled egg ribbons served over warm rice.,Veggie;Waste-Prevention,"{""rice"": 150, ""carrots"": 50, ""eggs"": 2, ""cooking oil"": 10}",true
+Rice and Egg Curry,Rice;Eggs;Carrots;Onions;Cooking Oil,Lunch/Dinner,82,Mild egg curry cooked in a flavorful onion gravy served with steamed rice.,Comfort;Family,"{""rice"": 150, ""eggs"": 2, ""carrots"": 50, ""onions"": 30, ""cooking oil"": 10}",true
+Vegetable Rice,Rice;Carrots;Eggs,Lunch/Dinner,78,One-pot rice cooked with diced fresh carrots and scrambled egg ribbons.,One-Pot;Easy,"{""rice"": 150, ""carrots"": 50, ""eggs"": 2}",true
+Egg Fried Rice,Rice;Eggs;Soy Sauce;Carrots;Cooking Oil,Lunch/Dinner,83,Classic egg fried rice seasoned with soy sauce and tossed with carrots.,Classic;Fast,"{""rice"": 150, ""eggs"": 2, ""soy sauce"": 15, ""carrots"": 50, ""cooking oil"": 10}",true
+Mixed Rice Bowl,Rice;Carrots;Eggs;Soy Sauce,Lunch/Dinner,84,Leftover steamed rice bowl topped with seasoned eggs, carrots,"{""rice"": 150, ""carrots"": 50, ""eggs"": 2, ""soy sauce"": 15}",true
+Scrambled Eggs on Rice,Rice;Eggs;Cooking Oil,Breakfast,72,Creamy scrambled eggs served over a bed of warm steamed rice.,Breakfast;Quick,"{""rice"": 150, ""eggs"": 2, ""cooking oil"": 10}",true
+Carrot Ginger Soup,Carrots;Onions;Garlic;Cooking Oil,Lunch,70,A warm and creamy pureed soup made with carrots, fresh ginger,"{""carrots"": 100, ""onions"": 30, ""garlic"": 10, ""cooking oil"": 10}",true
+Chicken Fried Rice,Rice;Chicken;Eggs;Soy Sauce;Onions;Cooking Oil,Dinner,88,Wok-fried rice with chicken, eggs,"{""rice"": 150, ""chicken"": 100, ""eggs"": 2, ""soy sauce"": 15, ""onions"": 30, ""cooking oil"": 10}",true
+Soy Glazed Chicken,Chicken;Soy Sauce;Garlic;Cooking Oil,Dinner,80,Pan-seared chicken breast glazed with a sweet and savory garlic-soy sauce reduction.,Protein;Savory,"{""chicken"": 150, ""soy sauce"": 20, ""garlic"": 10, ""cooking oil"": 10}",true
+Egg and Tomato Stir Fry,Eggs;Tomatoes;Cooking Oil,Breakfast/Lunch,79,A classic sweet and savory stir-fry of fluffy scrambled eggs and fresh tomato wedges.,Quick;Fresh,"{""eggs"": 2, ""tomatoes"": 100, ""cooking oil"": 10}",true
+Carrot Salad,Carrots;Soy Sauce,Lunch,65,A simple and crunchy grated carrot salad with a light soy sauce dressing.,Healthy;Salad,"{""carrots"": 100, ""soy sauce"": 10}",true
+Boiled Eggs with Rice,Rice;Eggs,Breakfast,70,Simple boiled eggs served on top of plain steamed rice.,Simple;Budget,"{""rice"": 150, ""eggs"": 2}",true
+Garlic Rice,Rice;Garlic;Cooking Oil,Breakfast/Lunch,68,Fragrant jasmine rice stir-fried with golden crispy garlic bits.,Easy;Flavorful,"{""rice"": 150, ""garlic"": 15, ""cooking oil"": 10}",true
+Chicken and Rice,Rice;Chicken;Garlic;Cooking Oil,Dinner,85,Tender chicken pieces simmered with garlic and ginger, served over steamed rice.,"{""rice"": 150, ""chicken"": 150, ""garlic"": 10, ""cooking oil"": 10}",true
+Steamed Rice,Rice,Breakfast/Lunch/Dinner,60,Perfectly steamed white rice, soft and fluffy.,"{""rice"": 150}",true
+Onion and Egg Omelet,Eggs;Onions;Cooking Oil,Breakfast,74,A fluffy egg omelet loaded with finely chopped sautéed onions.,Quick;Easy,"{""eggs"": 2, ""onions"": 30, ""cooking oil"": 10}",true
+Tomato Egg Soup,Eggs;Tomatoes;Garlic,Lunch,76,A comforting Chinese-style egg drop soup with fresh tomatoes.,Soup;Comfort,"{""eggs"": 2, ""tomatoes"": 100, ""garlic"": 10}",true
+Braised Chicken with Carrots,Chicken;Carrots;Soy Sauce;Onions;Garlic;Cooking Oil,Dinner,86,Slow-braised chicken and carrots in a rich garlic-soy gravy.,Dinner;Slow-Cook,"{""chicken"": 150, ""carrots"": 100, ""soy sauce"": 20, ""onions"": 30, ""garlic"": 10, ""cooking oil"": 10}",true
+Green Beans Stir Fry,Beans;Soy Sauce;Garlic;Cooking Oil,Lunch/Dinner,78,Sautéed green beans tossed in a savory soy-garlic glaze.,Side-Dish;Veggie,"{""beans"": 100, ""soy sauce"": 15, ""garlic"": 10, ""cooking oil"": 10}",true
+Chicken and Beans Stir Fry,Chicken;Beans;Soy Sauce;Cooking Oil,Dinner,84,Stir-fried chicken pieces and green beans in a savory soy sauce glaze.,Protein;Dinner,"{""chicken"": 150, ""beans"": 100, ""soy sauce"": 15, ""cooking oil"": 10}",true
