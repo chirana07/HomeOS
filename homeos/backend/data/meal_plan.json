@@ -2,6 +2,73 @@
   "daily_plan": {
     "day_1": {
       "breakfast": {
+        "meal_name": "Braised Chicken with Carrots",
+        "ingredients_used": [
+          "Chicken",
+          "Carrots",
+          "Soy Sauce",
+          "Onions",
+          "Garlic",
+          "Cooking Oil"
+        ],
+        "recipe_summary": "Slow-braised chicken and carrots in a rich garlic-soy gravy.",
+        "nutrition_score": 86,
+        "cost_estimate": 0,
+        "inventory_consumed": [
+          "Chicken",
+          "Carrots",
+          "Soy sauce",
+          "Onions",
+          "Garlic",
+          "Cooking oil"
+        ],
+        "waste_prevented": [
+          "Carrots"
+        ]
+      },
+      "lunch": {
+        "meal_name": "Vegetable Rice",
+        "ingredients_used": [
+          "Rice",
+          "Carrots",
+          "Eggs"
+        ],
+        "recipe_summary": "One-pot rice cooked with diced fresh carrots and scrambled egg ribbons.",
+        "nutrition_score": 78,
+        "cost_estimate": 0,
+        "inventory_consumed": [
+          "Rice",
+          "Carrots",
+          "Eggs"
+        ],
+        "waste_prevented": [
+          "Carrots"
+        ]
+      },
+      "dinner": {
+        "meal_name": "Carrot Stir Fry",
+        "ingredients_used": [
+          "Rice",
+          "Carrots",
+          "Eggs",
+          "Cooking Oil"
+        ],
+        "recipe_summary": "Saut\u00e9ed carrot ribbons with scrambled egg ribbons served over warm rice.",
+        "nutrition_score": 80,
+        "cost_estimate": 0,
+        "inventory_consumed": [
+          "Rice",
+          "Carrots",
+          "Eggs",
+          "Cooking oil"
+        ],
+        "waste_prevented": [
+          "Carrots"
+        ]
+      }
+    },
+    "day_2": {
+      "breakfast": {
         "meal_name": "Vegetable Rice",
         "ingredients_used": [
           "Rice",
@@ -65,7 +132,7 @@
         ]
       }
     },
-    "day_2": {
+    "day_3": {
       "breakfast": {
         "meal_name": "Mixed Rice Bowl",
         "ingredients_used": [
@@ -125,75 +192,6 @@
           "Eggs",
           "Soy sauce",
           "Carrots",
-          "Cooking oil"
-        ],
-        "waste_prevented": [
-          "Carrots"
-        ]
-      }
-    },
-    "day_3": {
-      "breakfast": {
-        "meal_name": "Carrot Stir Fry",
-        "ingredients_used": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Cooking Oil"
-        ],
-        "recipe_summary": "Saut\u00e9ed carrot ribbons with scrambled egg ribbons served over warm rice.",
-        "nutrition_score": 80,
-        "cost_estimate": 0,
-        "inventory_consumed": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Cooking oil"
-        ],
-        "waste_prevented": [
-          "Carrots"
-        ]
-      },
-      "lunch": {
-        "meal_name": "Vegetable Fried Rice",
-        "ingredients_used": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Soy Sauce",
-          "Cooking Oil"
-        ],
-        "recipe_summary": "Wok-fried rice with carrots",
-        "nutrition_score": 85,
-        "cost_estimate": 0,
-        "inventory_consumed": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Soy sauce",
-          "Cooking oil"
-        ],
-        "waste_prevented": [
-          "Carrots"
-        ]
-      },
-      "dinner": {
-        "meal_name": "Rice and Egg Curry",
-        "ingredients_used": [
-          "Rice",
-          "Eggs",
-          "Carrots",
-          "Onions",
-          "Cooking Oil"
-        ],
-        "recipe_summary": "Mild egg curry cooked in a flavorful onion gravy served with steamed rice.",
-        "nutrition_score": 82,
-        "cost_estimate": 0,
-        "inventory_consumed": [
-          "Rice",
-          "Eggs",
-          "Carrots",
-          "Onions",
           "Cooking oil"
         ],
         "waste_prevented": [
@@ -205,6 +203,73 @@
   "weekly_plan": {
     "day_1": {
       "breakfast": {
+        "meal_name": "Braised Chicken with Carrots",
+        "ingredients_used": [
+          "Chicken",
+          "Carrots",
+          "Soy Sauce",
+          "Onions",
+          "Garlic",
+          "Cooking Oil"
+        ],
+        "recipe_summary": "Slow-braised chicken and carrots in a rich garlic-soy gravy.",
+        "nutrition_score": 86,
+        "cost_estimate": 0,
+        "inventory_consumed": [
+          "Chicken",
+          "Carrots",
+          "Soy sauce",
+          "Onions",
+          "Garlic",
+          "Cooking oil"
+        ],
+        "waste_prevented": [
+          "Carrots"
+        ]
+      },
+      "lunch": {
+        "meal_name": "Vegetable Rice",
+        "ingredients_used": [
+          "Rice",
+          "Carrots",
+          "Eggs"
+        ],
+        "recipe_summary": "One-pot rice cooked with diced fresh carrots and scrambled egg ribbons.",
+        "nutrition_score": 78,
+        "cost_estimate": 0,
+        "inventory_consumed": [
+          "Rice",
+          "Carrots",
+          "Eggs"
+        ],
+        "waste_prevented": [
+          "Carrots"
+        ]
+      },
+      "dinner": {
+        "meal_name": "Carrot Stir Fry",
+        "ingredients_used": [
+          "Rice",
+          "Carrots",
+          "Eggs",
+          "Cooking Oil"
+        ],
+        "recipe_summary": "Saut\u00e9ed carrot ribbons with scrambled egg ribbons served over warm rice.",
+        "nutrition_score": 80,
+        "cost_estimate": 0,
+        "inventory_consumed": [
+          "Rice",
+          "Carrots",
+          "Eggs",
+          "Cooking oil"
+        ],
+        "waste_prevented": [
+          "Carrots"
+        ]
+      }
+    },
+    "day_2": {
+      "breakfast": {
         "meal_name": "Vegetable Rice",
         "ingredients_used": [
           "Rice",
@@ -268,7 +333,7 @@
         ]
       }
     },
-    "day_2": {
+    "day_3": {
       "breakfast": {
         "meal_name": "Mixed Rice Bowl",
         "ingredients_used": [
@@ -328,75 +393,6 @@
           "Eggs",
           "Soy sauce",
           "Carrots",
-          "Cooking oil"
-        ],
-        "waste_prevented": [
-          "Carrots"
-        ]
-      }
-    },
-    "day_3": {
-      "breakfast": {
-        "meal_name": "Carrot Stir Fry",
-        "ingredients_used": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Cooking Oil"
-        ],
-        "recipe_summary": "Saut\u00e9ed carrot ribbons with scrambled egg ribbons served over warm rice.",
-        "nutrition_score": 80,
-        "cost_estimate": 0,
-        "inventory_consumed": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Cooking oil"
-        ],
-        "waste_prevented": [
-          "Carrots"
-        ]
-      },
-      "lunch": {
-        "meal_name": "Vegetable Fried Rice",
-        "ingredients_used": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Soy Sauce",
-          "Cooking Oil"
-        ],
-        "recipe_summary": "Wok-fried rice with carrots",
-        "nutrition_score": 85,
-        "cost_estimate": 0,
-        "inventory_consumed": [
-          "Rice",
-          "Carrots",
-          "Eggs",
-          "Soy sauce",
-          "Cooking oil"
-        ],
-        "waste_prevented": [
-          "Carrots"
-        ]
-      },
-      "dinner": {
-        "meal_name": "Rice and Egg Curry",
-        "ingredients_used": [
-          "Rice",
-          "Eggs",
-          "Carrots",
-          "Onions",
-          "Cooking Oil"
-        ],
-        "recipe_summary": "Mild egg curry cooked in a flavorful onion gravy served with steamed rice.",
-        "nutrition_score": 82,
-        "cost_estimate": 0,
-        "inventory_consumed": [
-          "Rice",
-          "Eggs",
-          "Carrots",
-          "Onions",
           "Cooking oil"
         ],
         "waste_prevented": [
@@ -433,27 +429,27 @@
     "agent_trace": [
       {
         "agent": "Coordinator Agent",
-        "input": "Budget: LKR 10000.0 | Family Size: 4 | Inventory: ['beans', 'bun', 'buns', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
+        "input": "Budget: LKR 10000.0 | Family Size: 4 | Inventory: ['beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
         "decision": "Successfully parsed inputs and retrieved 7-day MealHistory.",
-        "output": "Goal state set. Objective: 'Optimize 3-day meal plan for a family of 4 within LKR 10000.0. Prioritize perishables, and avoid repeating meals: Chicken and Rice, Soy Glazed Chicken, Egg and Tomato Stir Fry, Green Beans Stir Fry, Chicken Fried Rice, Mixed Rice Bowl, Carrot Ginger Soup, Boiled Eggs with Rice, Tomato Egg Soup, Garlic Rice, Scrambled Eggs on Rice, Steamed Rice, Carrot Salad, Braised Chicken with Carrots, Chicken and Beans Stir Fry, Vegetable Rice, Egg Rice Bowl, Onion and Egg Omelet.'"
+        "output": "Goal state set. Objective: 'Optimize 3-day meal plan for a family of 4 within LKR 10000.0. Prioritize perishables, and avoid repeating meals: Steamed Rice, Carrot Ginger Soup, Vegetable Rice, Mixed Rice Bowl, Garlic Rice, Chicken Fried Rice, Scrambled Eggs on Rice, Egg Rice Bowl, Onion and Egg Omelet, Chicken and Beans Stir Fry, Chicken and Rice, Carrot Salad, Soy Glazed Chicken, Green Beans Stir Fry, Egg and Tomato Stir Fry, Tomato Egg Soup, Boiled Eggs with Rice, Braised Chicken with Carrots.'"
       },
       {
         "agent": "Inventory Agent",
-        "input": "User Inventory List: ['beans', 'bun', 'buns', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
+        "input": "User Inventory List: ['beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
         "decision": "Matched items against SQLite pantry DB. Flagged 1 urgent item(s).",
-        "output": "Urgent foods: ['Carrots'] | Resolved items: [{'name': 'Beans', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-28'}, {'name': 'Bun', 'quantity': 4.0, 'unit': 'pieces', 'expiry_date': '2026-06-27'}, {'name': 'Buns', 'quantity': 1.0, 'unit': 'pieces', 'expiry_date': '2026-06-27'}, {'name': 'Carrots', 'quantity': 1000.0, 'unit': 'g', 'expiry_date': '2026-06-23'}, {'name': 'Chicken', 'quantity': 2000.0, 'unit': 'g', 'expiry_date': '2026-06-25'}, {'name': 'Cooking oil', 'quantity': 1000.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Eggs', 'quantity': 24.0, 'unit': 'pcs', 'expiry_date': '2026-06-30'}, {'name': 'Garlic', 'quantity': 100.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Onions', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Rice', 'quantity': 5000.0, 'unit': 'g', 'expiry_date': '2026-07-20'}, {'name': 'Soy sauce', 'quantity': 500.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Tomatoes', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-25'}]"
+        "output": "Urgent foods: ['Carrots'] | Resolved items: [{'name': 'Beans', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-28'}, {'name': 'Carrots', 'quantity': 1000.0, 'unit': 'g', 'expiry_date': '2026-06-23'}, {'name': 'Chicken', 'quantity': 2000.0, 'unit': 'g', 'expiry_date': '2026-06-25'}, {'name': 'Cooking oil', 'quantity': 1000.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Eggs', 'quantity': 24.0, 'unit': 'pcs', 'expiry_date': '2026-06-30'}, {'name': 'Garlic', 'quantity': 100.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Onions', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Rice', 'quantity': 5000.0, 'unit': 'g', 'expiry_date': '2026-07-20'}, {'name': 'Soy sauce', 'quantity': 500.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Tomatoes', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-25'}]"
       },
       {
         "agent": "Waste Agent",
-        "input": "Pantry stock items: ['Beans', 'Bun', 'Buns', 'Carrots', 'Chicken', 'Cooking oil', 'Eggs', 'Garlic', 'Onions', 'Rice', 'Soy sauce', 'Tomatoes']",
+        "input": "Pantry stock items: ['Beans', 'Carrots', 'Chicken', 'Cooking oil', 'Eggs', 'Garlic', 'Onions', 'Rice', 'Soy sauce', 'Tomatoes']",
         "decision": "Successfully calculated waste risk from SQLite history tables.",
         "output": "Waste risk rankings: [{'item': 'Carrots', 'waste_score': 0.8, 'level': 'high', 'reason': 'Perishable \u00b7 Score 0.8'}, {'item': 'Eggs', 'waste_score': 0.5, 'level': 'medium', 'reason': 'Perishable \u00b7 Score 0.5'}, {'item': 'Rice', 'waste_score': 0.2, 'level': 'low', 'reason': 'Perishable \u00b7 Score 0.2'}, {'item': 'Soy sauce', 'waste_score': 0.1, 'level': 'low', 'reason': 'Perishable \u00b7 Score 0.1'}]"
       },
       {
         "agent": "Recipe Retrieval Agent",
-        "input": "Qdrant Query: 'Carrots, Beans, Bun, Buns, Chicken, Cooking oil, Eggs, Garlic, Onions, Rice, Soy sauce, Tomatoes'",
+        "input": "Qdrant Query: 'Carrots, Beans, Chicken, Cooking oil, Eggs, Garlic, Onions, Rice, Soy sauce, Tomatoes'",
         "decision": "Successfully conducted similarity search in Qdrant collection using text-embedding-004.",
-        "output": "Retrieved 20 recipe candidates: ['Vegetable Fried Rice', 'Braised Chicken with Carrots', 'Rice and Egg Curry', 'Egg Fried Rice', 'Chicken Fried Rice', 'Chicken and Beans Stir Fry', 'Carrot Stir Fry', 'Mixed Rice Bowl', 'Green Beans Stir Fry', 'Chicken and Rice', 'Egg Rice Bowl', 'Vegetable Rice', 'Soy Glazed Chicken', 'Carrot Ginger Soup', 'Carrot Salad', 'Boiled Eggs with Rice', 'Egg and Tomato Stir Fry', 'Garlic Rice', 'Steamed Rice', 'Onion and Egg Omelet']"
+        "output": "Retrieved 20 recipe candidates: ['Vegetable Fried Rice', 'Egg Fried Rice', 'Rice and Egg Curry', 'Chicken Fried Rice', 'Braised Chicken with Carrots', 'Chicken and Beans Stir Fry', 'Mixed Rice Bowl', 'Carrot Stir Fry', 'Green Beans Stir Fry', 'Vegetable Rice', 'Egg Rice Bowl', 'Chicken and Rice', 'Soy Glazed Chicken', 'Carrot Ginger Soup', 'Carrot Salad', 'Egg and Tomato Stir Fry', 'Boiled Eggs with Rice', 'Tomato Egg Soup', 'Garlic Rice', 'Onion and Egg Omelet']"
       },
       {
         "agent": "Meal Planner Agent",
@@ -472,6 +468,12 @@
         "input": "Budget: LKR 10000.0 | Estimated Cost: LKR 0.0",
         "decision": "{\"status\": \"PASS\", \"score\": 90, \"reason\": \"Fallback PASS status issued due to Gemini API client lookup error.\"}",
         "output": "Status: PASS | Score: 90 | Reason: Fallback PASS status issued due to Gemini API client lookup error."
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 1 Breakfast (Braised Chicken with Carrots)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Chicken, Carrots, Soy sauce, Onions, Garlic, Cooking oil | Deducted: 600 g, 400 g, 80 ml, 120 g, 40 g, 40 ml | Remaining: Chicken: 1400.0 g, Carrots: 600.0 g, Soy sauce: 420.0 ml, Onions: 380.0 g, Garlic: 60.0 g, Cooking oil: 960.0 ml"
       }
     ]
   }

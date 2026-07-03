@@ -300,11 +300,16 @@ def get_inventory_api():
         
         items = []
         for r in rows:
-            consumed = max(0.0, r["original_quantity"] - r["quantity"])
+            try:
+                oq = float(r["original_quantity"])
+                cq = float(r["quantity"])
+            except (ValueError, TypeError):
+                oq, cq = 0.0, 0.0
+            consumed = max(0.0, oq - cq)
             items.append({
                 "ingredient": r["ingredient"].capitalize(),
-                "quantity": r["quantity"],
-                "original_quantity": r["original_quantity"],
+                "quantity": cq,
+                "original_quantity": oq,
                 "consumed": consumed,
                 "unit": r["unit"],
                 "expiry_date": r["expiry_date"]

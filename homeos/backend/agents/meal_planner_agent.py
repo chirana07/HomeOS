@@ -106,6 +106,11 @@ def run_fallback_scheduler(recipes, inventory, urgent_foods, waste_risk):
         if has_urgent:
             score += 0.3
             
+        # Premium protein utilization boost (ensures we don't ignore expensive meats if we have them)
+        proteins = {"chicken", "beef", "fish", "pork", "mutton"}
+        if any(p in ingredients and p in inventory_names for p in proteins):
+            score += 0.2
+            
         scored.append({
             "recipe_name": r["recipe_name"],
             "ingredients": r["ingredients"],

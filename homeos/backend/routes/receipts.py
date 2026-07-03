@@ -46,16 +46,17 @@ def add_receipt(req: ReceiptRequest):
             total_expense += item['price']
             
             # Update inventory
-            cursor.execute("SELECT quantity FROM Inventory WHERE ingredient = ?", (item['name'],))
+            ing_lower = item['name'].lower()
+            cursor.execute("SELECT quantity FROM Inventory WHERE LOWER(ingredient) = ?", (ing_lower,))
             row = cursor.fetchone()
             if row:
                 try:
                     old_qty = float(row[0])
                     new_qty = old_qty + float(item['quantity'])
                     # Store as string to match existing schema
-                    cursor.execute("UPDATE Inventory SET quantity = ?, original_quantity = ? WHERE ingredient = ?", (str(new_qty), str(new_qty), item['name']))
+                    cursor.execute("UPDATE Inventory SET quantity = ?, original_quantity = ? WHERE LOWER(ingredient) = ?", (str(new_qty), str(new_qty), ing_lower))
                 except ValueError:
-                    cursor.execute("UPDATE Inventory SET quantity = ?, original_quantity = ? WHERE ingredient = ?", (item['quantity'], item['quantity'], item['name']))
+                    cursor.execute("UPDATE Inventory SET quantity = ?, original_quantity = ? WHERE LOWER(ingredient) = ?", (item['quantity'], item['quantity'], ing_lower))
             else:
                 cursor.execute("""
                     INSERT INTO Inventory (ingredient, quantity, original_quantity, unit, expiry_date)
@@ -111,13 +112,32 @@ def get_inventory():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT name, AVG(price) as avg_price FROM receipt_items GROUP BY name")
-    avg_prices = {row['name']: row['avg_price'] for row in cursor.fetchall()}
+    avg_prices = {row['name'].lower(): row['avg_price'] for row in cursor.fetchall()}
     conn.close()
     
+    # Load fallback prices from prices.csv
+    import os, csv
+    market_prices = {}
+    prices_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'prices.csv')
+    if os.path.exists(prices_file):
+        with open(prices_file, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                market_prices[row["item"].lower()] = float(row["price"])
+                
     inventory_items = []
     for row in rows:
         item = dict(row)
-        item['avg_price'] = avg_prices.get(item['name'], 0.0)
+        item_name = item['name'].lower()
+        
+        # Determine average price: Use receipt history, fallback to market price, or default to 0.0
+        if item_name in avg_prices:
+            item['avg_price'] = avg_prices[item_name]
+        elif item_name in market_prices:
+            item['avg_price'] = market_prices[item_name]
+        else:
+            item['avg_price'] = 0.0
+            
         inventory_items.append(item)
         
     return inventory_items
