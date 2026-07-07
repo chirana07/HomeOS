@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+import os
+import requests
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form
 from pydantic import BaseModel
 from tools.receipt_parser import parse_receipt_text
 from tools.db import get_db_connection
@@ -11,9 +13,8 @@ class ReceiptRequest(BaseModel):
     purchase_date: str
     store_name: str
 
-@router.post("/")
-def add_receipt(req: ReceiptRequest):
-    valid_items, warnings = parse_receipt_text(req.raw_text)
+def _process_and_save_receipt(raw_text: str, purchase_date: str, store_name: str):
+    valid_items, warnings = parse_receipt_text(raw_text)
     
     if not valid_items:
         raise HTTPException(status_code=400, detail={"message": "No valid items parsed from receipt.", "warnings": warnings})
@@ -23,14 +24,14 @@ def add_receipt(req: ReceiptRequest):
     
     try:
         # Insert receipt
-        cursor.execute("INSERT INTO receipts (purchase_date, store_name) VALUES (?, ?)", (req.purchase_date, req.store_name))
+        cursor.execute("INSERT INTO receipts (purchase_date, store_name) VALUES (?, ?)", (purchase_date, store_name))
         receipt_id = cursor.lastrowid
         
         total_expense = 0.0
         
         # Calculate expiry (default 7 days from purchase)
         try:
-            p_date = datetime.strptime(req.purchase_date, "%Y-%m-%d")
+            p_date = datetime.strptime(purchase_date, "%Y-%m-%d")
         except ValueError:
             p_date = datetime.now()
             
@@ -88,6 +89,10 @@ def add_receipt(req: ReceiptRequest):
         "total_expense": total_expense,
         "warnings": warnings
     }
+
+@router.post("/")
+def add_receipt(req: ReceiptRequest):
+    return _process_and_save_receipt(req.raw_text, req.purchase_date, req.store_name)
 
 @router.get("/pantry")
 def get_pantry():

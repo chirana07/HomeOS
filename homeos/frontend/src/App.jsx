@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import DayDetail from './pages/DayDetail';
 import AgentTrace from './pages/AgentTrace';
 import Receipts from './pages/Receipts';
+import AssistantWidget from './components/AssistantWidget';
 
 export default function App() {
   const [currentPlan, setCurrentPlan] = useState(null);
@@ -42,6 +43,9 @@ export default function App() {
             </Routes>
           </div>
         </main>
+        
+        {/* Global Assistant Widget */}
+        <AssistantWidget />
       </div>
     </Router>
   );

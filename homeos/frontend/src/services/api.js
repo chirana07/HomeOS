@@ -100,3 +100,23 @@ export async function getPlanInventory() {
   }
   return response.json();
 }
+
+export async function chatWithAssistantVoice(formData) {
+  const response = await fetch('/api/assistant/voice', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errMsg = 'Failed to process voice request.';
+    try {
+      const err = await response.json();
+      errMsg = err.detail?.message || err.detail || errMsg;
+    } catch (e) {
+      // response might not be JSON if it's a 500 error
+    }
+    throw new Error(errMsg);
+  }
+
+  return response.blob();
+}

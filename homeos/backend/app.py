@@ -17,6 +17,7 @@ from tools.db import init_db
 from vector_db.qdrant import init_qdrant, client as q_client, COLLECTION_NAME
 from routes import plan
 from routes import receipts
+from routes import assistant
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -85,6 +86,7 @@ app.add_middleware(
 # API routes
 app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
 app.include_router(receipts.router, prefix="/api/receipts", tags=["Receipts"])
+app.include_router(assistant.router, prefix="/api/assistant", tags=["Assistant"])
 
 @app.get("/api/inventory")
 def get_inventory_direct():
