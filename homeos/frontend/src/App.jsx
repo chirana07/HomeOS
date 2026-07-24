@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import DayDetail from './pages/DayDetail';
@@ -8,15 +9,19 @@ import Receipts from './pages/Receipts';
 import AssistantWidget from './components/AssistantWidget';
 
 export default function App() {
-  const [currentPlan, setCurrentPlan] = useState(null);
-
-  const handlePlanGenerated = (plan) => {
-    setCurrentPlan(plan);
-  };
-
   return (
     <Router>
       <div className="flex bg-[#0b0f19] text-slate-100 min-h-screen">
+        <Toaster 
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#0f172a',
+              color: '#fff',
+              border: '1px solid #1e293b',
+            },
+          }}
+        />
         {/* Sidebar Nav */}
         <Sidebar />
 
@@ -30,12 +35,7 @@ export default function App() {
             <Routes>
               <Route 
                 path="/" 
-                element={
-                  <Dashboard 
-                    onPlanGenerated={handlePlanGenerated} 
-                    currentPlan={currentPlan} 
-                  />
-                } 
+                element={<Dashboard />} 
               />
               <Route path="/day/:id" element={<DayDetail />} />
               <Route path="/trace" element={<AgentTrace />} />

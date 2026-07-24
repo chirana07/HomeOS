@@ -45,8 +45,8 @@ def reporting_agent(state: AgentState):
             "waste_prevented_items": waste_prevented,
             "inventory_utilization_score": "100%" if len(urgent_foods) > 0 else "80%",
             "nutrition_score": f"{avg_nut}/100",
-            "estimated_cost": f"LKR {int(estimated_cost)}",
-            "estimated_savings": f"LKR {int(savings)}",
+            "estimated_cost": int(estimated_cost),
+            "estimated_savings": int(savings),
             "family_size": state.get("family_size", 4)
         },
         "agent_reasoning": {

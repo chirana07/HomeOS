@@ -9,7 +9,7 @@ def get_db_connection():
     Establishes and returns a connection to the local SQLite database.
     """
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10.0)
     conn.row_factory = sqlite3.Row
     return conn
 

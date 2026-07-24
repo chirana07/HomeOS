@@ -3,7 +3,8 @@ import { Sparkles, ShoppingCart, DollarSign, Scale, Trash2, Plus, Minus, Check }
 import { generatePlan, getPlanInventory, getPantry } from '../services/api';
 import MealCard from '../components/MealCard';
 
-export default function Dashboard({ onPlanGenerated, currentPlan }) {
+export default function Dashboard() {
+  const [currentPlan, setCurrentPlan] = useState(null);
   const [budget, setBudget] = useState(10000);
   const [familySize, setFamilySize] = useState(4);
   const [pantryInput, setPantryInput] = useState('');
@@ -15,8 +16,8 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
   const fetchPantry = async () => {
     try {
       const items = await getPantry();
-      if (items && items.length > 0) {
-        // Ensure unique items
+      if (items) {
+        // Ensure unique items and handle empty gracefully
         setPantryList([...new Set(items)]);
       }
     } catch (err) {
@@ -26,6 +27,20 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
 
   React.useEffect(() => {
     fetchPantry();
+    // Auto-refresh the current plan when the Dashboard mounts 
+    // so we get the latest shopping list from disk if it was updated in DayDetail
+    async function loadCurrentPlan() {
+      try {
+        const { getPlan } = await import('../services/api');
+        const plan = await getPlan();
+        if (plan) {
+          setCurrentPlan(plan);
+        }
+      } catch (err) {
+        console.log("No existing plan found or failed to load:", err);
+      }
+    }
+    loadCurrentPlan();
   }, []);
 
   const addPantryItem = () => {
@@ -73,7 +88,7 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
         inventory: pantryList,
       });
 
-      onPlanGenerated(plan);
+      setCurrentPlan(plan);
     } catch (err) {
       setError(err.message || 'System workflow error occurred.');
     } finally {
@@ -213,6 +228,63 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
       {/* Results View */}
       {currentPlan && !isLoading && (
         <div>
+          {/* Execution & Efficiency Summary */}
+          {(() => {
+            let completed = 0;
+            const total = 9;
+            const days = [1, 2, 3];
+            days.forEach(d => {
+              const day = currentPlan.daily_plan[`day_${d}`];
+              if (day) {
+                if (day.breakfast?.status === 'Completed') completed++;
+                if (day.lunch?.status === 'Completed') completed++;
+                if (day.dinner?.status === 'Completed') completed++;
+              }
+            });
+            const progress = (completed / total) * 100;
+            
+            // Calculate efficiency
+            const nutrition = currentPlan.household_economics.nutrition_score || 0;
+            const wasteLen = currentPlan.household_economics.waste_prevented_items?.length || 0;
+            let grade = 'C';
+            let color = 'text-amber-400 border-amber-500/20 bg-amber-500/10';
+            if (nutrition > 80 && wasteLen >= 3) {
+              grade = 'A+';
+              color = 'text-cyan-400 border-cyan-500/20 bg-cyan-500/10';
+            } else if (nutrition > 70) {
+              grade = 'A';
+              color = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
+            } else if (nutrition > 60) {
+              grade = 'B';
+              color = 'text-indigo-400 border-indigo-500/20 bg-indigo-500/10';
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="glass rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
+                  <div className="flex-1 mr-6">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Weekly Execution</span>
+                      <span className="text-sm font-bold text-white">{completed} / {total} Meals</span>
+                    </div>
+                    <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                      <div className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="glass rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1">Household Efficiency</span>
+                    <span className="text-xs text-slate-500">Based on nutrition & waste</span>
+                  </div>
+                  <div className={`w-12 h-12 rounded-xl border flex items-center justify-center font-black text-2xl shadow-lg ${color}`}>
+                    {grade}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Tab Navigation */}
           <div className="flex gap-6 mb-8 border-b border-slate-800 pb-px">
             <button
@@ -299,11 +371,11 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
                 </div>
                 <div className="glass rounded-xl p-5 border border-slate-800">
                   <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Optimized Cost</div>
-                  <div className="text-2xl font-black text-indigo-400 mt-1">{currentPlan.household_economics.estimated_cost}</div>
+                  <div className="text-2xl font-black text-indigo-400 mt-1">LKR {Number(currentPlan.household_economics.estimated_cost).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
                 </div>
                 <div className="glass rounded-xl p-5 border border-slate-800">
                   <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Estimated Savings</div>
-                  <div className="text-2xl font-black text-emerald-400 mt-1">{currentPlan.household_economics.estimated_savings}</div>
+                  <div className="text-2xl font-black text-emerald-400 mt-1">LKR {Number(currentPlan.household_economics.estimated_savings).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
                 </div>
                 <div className="glass rounded-xl p-5 border border-slate-800">
                   <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Waste Prevented</div>
@@ -347,7 +419,7 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
                       <div>
                         <div className="flex justify-between text-xs text-slate-400 mb-1">
                           <span>Self-Corrected Cost</span>
-                          <span className="font-semibold text-emerald-400">{currentPlan.household_economics.estimated_cost}</span>
+                          <span className="font-semibold text-emerald-400">LKR {Number(currentPlan.household_economics.estimated_cost).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
                         <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
                           <div className="bg-emerald-500 h-full w-[72%]" />
@@ -397,7 +469,7 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
                               <tr key={idx} className="text-slate-300">
                                 <td className="py-3 font-semibold">{item.item}</td>
                                 <td className="py-3">{item.qty}</td>
-                                <td className="py-3">LKR {item.cost}</td>
+                                <td className="py-3">LKR {Number(item.cost).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 <td className="py-3">
                                   <span className={`inline-flex items-center gap-1.5 font-bold uppercase text-[9px] px-2 py-0.5 rounded-full ${
                                     item.priority === 'high' 

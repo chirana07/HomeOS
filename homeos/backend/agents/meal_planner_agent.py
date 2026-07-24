@@ -35,13 +35,11 @@ def meal_planner_agent(state: AgentState):
     # Call Gemini Flash central client with JSON mode
     decision = generate_text(system_prompt, user_content, temperature=0.2, json_mode=True)
     
-    # Strip markdown block ticks if returned in spite of system instructions
+    import re
     cleaned_decision = decision
-    if "```" in decision:
-        cleaned_decision = decision.split("```")[1]
-        if cleaned_decision.startswith("json"):
-            cleaned_decision = cleaned_decision[4:]
-        cleaned_decision = cleaned_decision.strip()
+    match = re.search(r'\{.*\}', decision, re.DOTALL)
+    if match:
+        cleaned_decision = match.group(0)
 
     weekly_plan = {}
     reasoning_summary = ""

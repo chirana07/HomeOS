@@ -12,6 +12,9 @@ router = APIRouter()
 
 @router.post("/voice")
 async def chat_with_assistant(file: UploadFile = File(...)):
+    if not file.content_type or (not file.content_type.startswith("audio/") and file.content_type != "video/webm"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be an audio format or webm.")
+        
     # 1. Transcribe audio with Groq Whisper
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -102,6 +105,7 @@ Always keep your conversational response in 1 to 2 short sentences. Do not use m
     # 4. Generate TTS with edge-tts
     try:
         import edge_tts
+        import urllib.parse
         
         communicate = edge_tts.Communicate(llm_response, "en-US-AriaNeural")
         
@@ -110,6 +114,14 @@ Always keep your conversational response in 1 to 2 short sentences. Do not use m
                 if chunk["type"] == "audio":
                     yield chunk["data"]
                     
-        return StreamingResponse(audio_stream(), media_type="audio/mpeg")
+        encoded_transcript = urllib.parse.quote(llm_response)
+        return StreamingResponse(
+            audio_stream(), 
+            media_type="audio/mpeg", 
+            headers={
+                "X-Assistant-Transcript": encoded_transcript,
+                "Access-Control-Expose-Headers": "X-Assistant-Transcript"
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")

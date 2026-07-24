@@ -112,9 +112,16 @@ def parse_receipt_text(text: str):
                 clean_items = []
                 for item in valid_items:
                     if "name" in item and "price" in item:
+                        qty_str = str(item.get("quantity", "1"))
+                        try:
+                            # Verify it can be cast to float, otherwise fallback
+                            float(qty_str)
+                        except ValueError:
+                            qty_str = "1.0"
+                            
                         clean_items.append({
                             "name": str(item["name"]),
-                            "quantity": str(item.get("quantity", "1")),
+                            "quantity": qty_str,
                             "unit": str(item.get("unit", "pieces")),
                             "price": float(item["price"])
                         })
