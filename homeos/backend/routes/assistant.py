@@ -12,6 +12,9 @@ router = APIRouter()
 
 @router.post("/voice")
 async def chat_with_assistant(file: UploadFile = File(...)):
+    if not file.content_type or (not file.content_type.startswith("audio/") and file.content_type != "video/webm"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be an audio format or webm.")
+        
     # 1. Transcribe audio with Groq Whisper
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:

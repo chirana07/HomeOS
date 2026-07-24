@@ -1,5 +1,13 @@
 // api.js
 
+export async function getPlan() {
+  const response = await fetch('/api/plan/');
+  if (!response.ok) {
+    throw new Error('Failed to fetch plan.');
+  }
+  return response.json();
+}
+
 export async function generatePlan({ budget, familySize, inventory }) {
   const response = await fetch('/api/plan/generate', {
     method: 'POST',

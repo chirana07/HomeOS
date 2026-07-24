@@ -34,11 +34,26 @@ def get_persisted_plan():
             pass
     return _last_plan
 
+@router.get("/")
+def get_current_plan():
+    """
+    Returns the currently persisted meal plan, including dynamically updated shopping lists.
+    """
+    plan = get_persisted_plan()
+    if not plan:
+        raise HTTPException(status_code=404, detail="No meal plan generated yet.")
+    return plan
+
 @router.post("/generate")
 def generate_plan(req: GenerationRequest):
     """
     Executes the full autonomous LangGraph agent workflow.
     """
+    if req.family_size <= 0:
+        raise HTTPException(status_code=400, detail="family_size must be greater than 0")
+    if req.budget <= 0:
+        raise HTTPException(status_code=400, detail="budget must be greater than 0")
+        
     # 1. Reset MealExecution and restore Inventory quantities on new generation
     try:
         conn = get_db_connection()
@@ -214,9 +229,19 @@ def complete_meal(req: CompleteMealRequest):
     # 3. Multiply ingredients by family_size
     family_size = plan.get("household_economics", {}).get("family_size", 4)
     
+    # Load market prices to calculate cost of depleted items
+    prices_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'prices.csv')
+    market_prices = {}
+    if os.path.exists(prices_file):
+        with open(prices_file, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                market_prices[row["item"].lower()] = float(row["price"])
+
     consumed_list = []
     deductions_list = []
     remaining_list = []
+    newly_depleted = []
     
     # 4. Reduce quantities in SQLite Inventory table
     for ing_name, base_qty in ingredients_json.items():
@@ -230,6 +255,15 @@ def complete_meal(req: CompleteMealRequest):
             unit = row["unit"]
             new_qty = max(0.0, current_qty - deduction)
             cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
+            
+            if new_qty == 0.0 and current_qty > 0.0:
+                cost = market_prices.get(db_ing, 100.0)
+                newly_depleted.append({
+                    "item": db_ing.capitalize(),
+                    "qty": f"1 {unit}", 
+                    "cost": int(cost),
+                    "priority": "high"
+                })
             
             consumed_list.append(db_ing.capitalize())
             deductions_list.append(f"{deduction} {unit}")
@@ -274,6 +308,17 @@ def complete_meal(req: CompleteMealRequest):
         plan["agent_reasoning"]["agent_trace"] = []
         
     plan["agent_reasoning"]["agent_trace"].append(trace_entry)
+    
+    # Append newly depleted items to shopping list
+    if newly_depleted:
+        if "shopping_list" not in plan:
+            plan["shopping_list"] = []
+            
+        existing_items = {item["item"].lower() for item in plan["shopping_list"]}
+        
+        for new_item in newly_depleted:
+            if new_item["item"].lower() not in existing_items:
+                plan["shopping_list"].append(new_item)
     
     # Save plan back to disk
     plan_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'meal_plan.json')

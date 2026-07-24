@@ -401,11 +401,24 @@
       }
     }
   },
-  "shopping_list": [],
+  "shopping_list": [
+    {
+      "item": "Carrots",
+      "qty": "1 g",
+      "cost": 150,
+      "priority": "high"
+    },
+    {
+      "item": "Eggs",
+      "qty": "1 pcs",
+      "cost": 480,
+      "priority": "high"
+    }
+  ],
   "household_economics": {
     "waste_prevented_items": [
-      "Eggs",
-      "Carrots"
+      "Carrots",
+      "Eggs"
     ],
     "inventory_utilization_score": "100%",
     "nutrition_score": "82/100",
@@ -431,7 +444,7 @@
         "agent": "Coordinator Agent",
         "input": "Budget: LKR 10000.0 | Family Size: 4 | Inventory: ['beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
         "decision": "Successfully parsed inputs and retrieved 7-day MealHistory.",
-        "output": "Goal state set. Objective: 'Optimize 3-day meal plan for a family of 4 within LKR 10000.0. Prioritize perishables, and avoid repeating meals: Steamed Rice, Carrot Ginger Soup, Vegetable Rice, Mixed Rice Bowl, Garlic Rice, Chicken Fried Rice, Scrambled Eggs on Rice, Egg Rice Bowl, Onion and Egg Omelet, Chicken and Beans Stir Fry, Chicken and Rice, Carrot Salad, Soy Glazed Chicken, Green Beans Stir Fry, Egg and Tomato Stir Fry, Tomato Egg Soup, Boiled Eggs with Rice, Braised Chicken with Carrots.'"
+        "output": "Goal state set. Objective: 'Optimize 3-day meal plan for a family of 4 within LKR 10000.0. Prioritize perishables, and avoid repeating meals: Egg and Tomato Stir Fry, Carrot Salad, Chicken and Rice, Steamed Rice, Mixed Rice Bowl, Tomato Egg Soup, Boiled Eggs with Rice, Onion and Egg Omelet, Scrambled Eggs on Rice, Green Beans Stir Fry, Carrot Ginger Soup, Egg Rice Bowl, Soy Glazed Chicken, Chicken and Beans Stir Fry, Vegetable Rice, Braised Chicken with Carrots, Garlic Rice, Chicken Fried Rice.'"
       },
       {
         "agent": "Inventory Agent",
@@ -474,6 +487,30 @@
         "input": "Meal Completed: Day 1 Breakfast (Braised Chicken with Carrots)",
         "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
         "output": "Consumed: Chicken, Carrots, Soy sauce, Onions, Garlic, Cooking oil | Deducted: 600 g, 400 g, 80 ml, 120 g, 40 g, 40 ml | Remaining: Chicken: 1400.0 g, Carrots: 600.0 g, Soy sauce: 420.0 ml, Onions: 380.0 g, Garlic: 60.0 g, Cooking oil: 960.0 ml"
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 1 Lunch (Vegetable Rice)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Rice, Carrots, Eggs | Deducted: 600 g, 200 g, 8 pcs | Remaining: Rice: 4400.0 g, Carrots: 400.0 g, Eggs: 16.0 pcs"
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 1 Dinner (Carrot Stir Fry)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Rice, Carrots, Eggs, Cooking oil | Deducted: 600 g, 200 g, 8 pcs, 40 ml | Remaining: Rice: 3800.0 g, Carrots: 200.0 g, Eggs: 8.0 pcs, Cooking oil: 920.0 ml"
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 2 Breakfast (Vegetable Rice)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Rice, Carrots, Eggs | Deducted: 600 g, 200 g, 8 pcs | Remaining: Rice: 3200.0 g, Carrots: 0.0 g, Eggs: 0.0 pcs"
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 2 Lunch (Mixed Rice Bowl)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Rice, Carrots, Eggs, Soy sauce | Deducted: 600 g, 200 g, 8 pcs, 60 ml | Remaining: Rice: 2600.0 g, Carrots: 0.0 g, Eggs: 0.0 pcs, Soy sauce: 360.0 ml"
       }
     ]
   }

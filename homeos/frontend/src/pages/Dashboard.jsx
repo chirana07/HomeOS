@@ -3,7 +3,8 @@ import { Sparkles, ShoppingCart, DollarSign, Scale, Trash2, Plus, Minus, Check }
 import { generatePlan, getPlanInventory, getPantry } from '../services/api';
 import MealCard from '../components/MealCard';
 
-export default function Dashboard({ onPlanGenerated, currentPlan }) {
+export default function Dashboard() {
+  const [currentPlan, setCurrentPlan] = useState(null);
   const [budget, setBudget] = useState(10000);
   const [familySize, setFamilySize] = useState(4);
   const [pantryInput, setPantryInput] = useState('');
@@ -15,8 +16,8 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
   const fetchPantry = async () => {
     try {
       const items = await getPantry();
-      if (items && items.length > 0) {
-        // Ensure unique items
+      if (items) {
+        // Ensure unique items and handle empty gracefully
         setPantryList([...new Set(items)]);
       }
     } catch (err) {
@@ -26,6 +27,20 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
 
   React.useEffect(() => {
     fetchPantry();
+    // Auto-refresh the current plan when the Dashboard mounts 
+    // so we get the latest shopping list from disk if it was updated in DayDetail
+    async function loadCurrentPlan() {
+      try {
+        const { getPlan } = await import('../services/api');
+        const plan = await getPlan();
+        if (plan) {
+          setCurrentPlan(plan);
+        }
+      } catch (err) {
+        console.log("No existing plan found or failed to load:", err);
+      }
+    }
+    loadCurrentPlan();
   }, []);
 
   const addPantryItem = () => {
@@ -73,7 +88,7 @@ export default function Dashboard({ onPlanGenerated, currentPlan }) {
         inventory: pantryList,
       });
 
-      onPlanGenerated(plan);
+      setCurrentPlan(plan);
     } catch (err) {
       setError(err.message || 'System workflow error occurred.');
     } finally {
