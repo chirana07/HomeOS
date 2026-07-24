@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Coffee, Sun, Moon, Sparkles, CheckCircle2, ShoppingBag } from 'lucide-react';
-import { completeMeal } from '../services/api';
+import { Coffee, Sun, Moon, Sparkles, CheckCircle2, ShoppingBag, RotateCcw } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { completeMeal, undoMeal } from '../services/api';
 
 export default function MealDetailCard({ type, meal, dayId, onComplete }) {
   const isBreakfast = type === 'breakfast';
@@ -18,11 +19,27 @@ export default function MealDetailCard({ type, meal, dayId, onComplete }) {
     setIsCompleting(true);
     try {
       await completeMeal(dayId, type);
+      toast.success(`${meal.meal_name} completed!`);
       if (onComplete) {
         onComplete();
       }
     } catch (err) {
-      alert(err.message || 'Failed to complete meal.');
+      toast.error(err.message || 'Failed to complete meal.');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleUndo = async () => {
+    setIsCompleting(true);
+    try {
+      await undoMeal(dayId, type);
+      toast.success(`${meal.meal_name} restored!`);
+      if (onComplete) {
+        onComplete();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to undo meal.');
     } finally {
       setIsCompleting(false);
     }
@@ -74,7 +91,7 @@ export default function MealDetailCard({ type, meal, dayId, onComplete }) {
         <div>
           <div className="text-[10px] text-slate-500 font-semibold uppercase">Est. Cost</div>
           <div className={`font-bold text-sm ${meal.cost_estimate > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-            {meal.cost_estimate > 0 ? `LKR ${meal.cost_estimate}` : 'LKR 0 (In Stock)'}
+            {meal.cost_estimate > 0 ? `LKR ${Number(meal.cost_estimate).toLocaleString(undefined, {minimumFractionDigits: 2})}` : 'LKR 0 (In Stock)'}
           </div>
         </div>
 
@@ -90,25 +107,43 @@ export default function MealDetailCard({ type, meal, dayId, onComplete }) {
       <div className="border-t border-slate-800 pt-4 mt-auto flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500 font-semibold uppercase">Execution Status</span>
-          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-            meal.status === 'Completed'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-          }`}>
-            {meal.status || 'Pending'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+              meal.status === 'Completed'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+            }`}>
+              {meal.status || 'Pending'}
+            </span>
+            {meal.status === 'Completed' && (
+              <button 
+                onClick={handleUndo} 
+                disabled={isCompleting}
+                title="Undo Completion"
+                className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${isCompleting ? 'animate-spin text-indigo-400' : ''}`} />
+              </button>
+            )}
+          </div>
         </div>
         
-        <button
+        <button 
           onClick={handleComplete}
           disabled={meal.status === 'Completed' || isCompleting}
-          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs tracking-wider uppercase transition-all ${
+          className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
             meal.status === 'Completed'
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-850'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/10'
+              ? 'bg-slate-900 text-slate-500 cursor-not-allowed border border-slate-800'
+              : 'bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/40'
           }`}
         >
-          {isCompleting ? 'Completing...' : meal.status === 'Completed' ? 'Meal Completed' : 'Complete Meal'}
+          {isCompleting ? (
+            <div className="w-4 h-4 border-2 border-indigo-400/20 border-t-indigo-400 rounded-full animate-spin" />
+          ) : meal.status === 'Completed' ? (
+            <><CheckCircle2 className="w-4 h-4" /> Finished</>
+          ) : (
+            'Mark as Completed'
+          )}
         </button>
       </div>
     </div>

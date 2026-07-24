@@ -6,6 +6,7 @@ export default function AssistantWidget() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [transcript, setTranscript] = useState('');
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -58,6 +59,7 @@ export default function AssistantWidget() {
       mediaRecorder.start();
       setIsRecording(true);
       setError('');
+      setTranscript('');
       
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
@@ -84,7 +86,13 @@ export default function AssistantWidget() {
       const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp4') ? 'm4a' : 'wav';
       formData.append('file', blob, `voice_query.${extension}`);
       
-      const audioBlobResponse = await chatWithAssistantVoice(formData);
+      const { blob: audioBlobResponse, transcript: responseText } = await chatWithAssistantVoice(formData);
+      
+      if (responseText) {
+        setTranscript(responseText);
+        // Clear transcript after a bit
+        setTimeout(() => setTranscript(''), 6000);
+      }
       
       if (audioPlayerRef.current) {
         const audioUrl = URL.createObjectURL(audioBlobResponse);
@@ -109,6 +117,16 @@ export default function AssistantWidget() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      {transcript && (
+        <div className="bg-slate-900 border border-slate-700 text-white text-sm px-4 py-3 rounded-2xl shadow-2xl shadow-indigo-500/10 max-w-[280px] text-right animate-in fade-in slide-in-from-bottom-2 flex items-start gap-3">
+          <div className="flex-1">
+            <span className="text-xs text-indigo-400 font-bold uppercase tracking-wider block mb-1">HomeOS Assistant</span>
+            {transcript}
+          </div>
+          <Bot className="w-5 h-5 text-indigo-400 mt-1 shrink-0" />
+        </div>
+      )}
+      
       {error && (
         <div className="bg-rose-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-lg shadow-rose-500/20 max-w-[200px] text-center animate-in fade-in slide-in-from-bottom-2">
           {error}

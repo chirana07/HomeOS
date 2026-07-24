@@ -105,6 +105,7 @@ Always keep your conversational response in 1 to 2 short sentences. Do not use m
     # 4. Generate TTS with edge-tts
     try:
         import edge_tts
+        import urllib.parse
         
         communicate = edge_tts.Communicate(llm_response, "en-US-AriaNeural")
         
@@ -113,6 +114,14 @@ Always keep your conversational response in 1 to 2 short sentences. Do not use m
                 if chunk["type"] == "audio":
                     yield chunk["data"]
                     
-        return StreamingResponse(audio_stream(), media_type="audio/mpeg")
+        encoded_transcript = urllib.parse.quote(llm_response)
+        return StreamingResponse(
+            audio_stream(), 
+            media_type="audio/mpeg", 
+            headers={
+                "X-Assistant-Transcript": encoded_transcript,
+                "Access-Control-Expose-Headers": "X-Assistant-Transcript"
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")

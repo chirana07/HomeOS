@@ -42,6 +42,31 @@ def get_current_plan():
     plan = get_persisted_plan()
     if not plan:
         raise HTTPException(status_code=404, detail="No meal plan generated yet.")
+        
+    # Dynamically inject completion status for Dashboard
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT day, meal_type FROM MealExecution")
+        completed_rows = cursor.fetchall()
+        conn.close()
+        
+        # map (day, meal_type) -> True
+        completed_set = {(r["day"], r["meal_type"].lower()) for r in completed_rows}
+        
+        if "daily_plan" in plan:
+            for day_num in [1, 2, 3]:
+                day_key = f"day_{day_num}"
+                if day_key in plan["daily_plan"]:
+                    for m_type in ["breakfast", "lunch", "dinner"]:
+                        if m_type in plan["daily_plan"][day_key]:
+                            if (day_num, m_type) in completed_set:
+                                plan["daily_plan"][day_key][m_type]["status"] = "Completed"
+                            else:
+                                plan["daily_plan"][day_key][m_type]["status"] = "Pending"
+    except Exception as e:
+        print(f"Error injecting statuses: {e}")
+        
     return plan
 
 @router.post("/generate")
@@ -54,15 +79,14 @@ def generate_plan(req: GenerationRequest):
     if req.budget <= 0:
         raise HTTPException(status_code=400, detail="budget must be greater than 0")
         
-    # 1. Reset MealExecution and restore Inventory quantities on new generation
+    # 1. Reset MealExecution on new generation (but keep depleted inventory)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM MealExecution")
-        cursor.execute("UPDATE Inventory SET quantity = original_quantity")
         conn.commit()
         conn.close()
-        print("Cleared previous meal execution records and restored inventory stock.")
+        print("Cleared previous meal execution records.")
     except Exception as e:
         print(f"Error resetting database state: {e}")
         
@@ -248,21 +272,28 @@ def complete_meal(req: CompleteMealRequest):
         db_ing = normalize_ingredient_name(ing_name)
         deduction = base_qty * family_size if portion_per_person else base_qty
         
-        cursor.execute("SELECT quantity, unit FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
+        cursor.execute("SELECT quantity, original_quantity, unit FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
         row = cursor.fetchone()
         if row:
-            current_qty = row["quantity"]
+            current_qty = float(row["quantity"])
+            try:
+                original_qty = float(row["original_quantity"]) if row["original_quantity"] is not None else current_qty
+            except (ValueError, TypeError):
+                original_qty = current_qty
+                
             unit = row["unit"]
             new_qty = max(0.0, current_qty - deduction)
             cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
             
-            if new_qty == 0.0 and current_qty > 0.0:
+            # Add to shopping list if it drops to 20% or less of original capacity
+            threshold = original_qty * 0.2
+            if new_qty <= threshold and current_qty > threshold:
                 cost = market_prices.get(db_ing, 100.0)
                 newly_depleted.append({
                     "item": db_ing.capitalize(),
                     "qty": f"1 {unit}", 
                     "cost": int(cost),
-                    "priority": "high"
+                    "priority": "high" if new_qty == 0.0 else "medium"
                 })
             
             consumed_list.append(db_ing.capitalize())
@@ -329,6 +360,102 @@ def complete_meal(req: CompleteMealRequest):
         "status": "success",
         "message": f"Meal completion recorded and inventory updated for {recipe_name}.",
         "trace_entry": trace_entry
+    }
+
+@router.post("/undo-meal")
+def undo_meal(req: CompleteMealRequest):
+    """
+    Undoes a completed meal, restores inventory, and removes the trace.
+    """
+    if req.day not in [1, 2, 3]:
+        raise HTTPException(status_code=400, detail="Day must be 1, 2, or 3.")
+    m_type = req.meal_type.lower()
+    if m_type not in ["breakfast", "lunch", "dinner"]:
+        raise HTTPException(status_code=400, detail="Meal type must be breakfast, lunch, or dinner.")
+        
+    plan = get_persisted_plan()
+    if not plan or "daily_plan" not in plan:
+        raise HTTPException(status_code=400, detail="No meal plan exists.")
+        
+    day_key = f"day_{req.day}"
+    daily_plan = plan["daily_plan"]
+    if day_key not in daily_plan:
+        raise HTTPException(status_code=404, detail=f"Day {req.day} not found in the current plan.")
+        
+    meal = daily_plan[day_key].get(m_type)
+    if not meal:
+        raise HTTPException(status_code=404, detail=f"Meal type {req.meal_type} not found on Day {req.day}.")
+        
+    recipe_name = meal.get("meal_name", "")
+    
+    # 1. Ensure it was actually completed
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM MealExecution WHERE day = ? AND meal_type = ?", (req.day, m_type))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Meal is not currently completed.")
+        
+    # 2. Get recipe ingredients to restore
+    recipes_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'recipes.csv')
+    ingredients_json = {}
+    portion_per_person = True
+    
+    if os.path.exists(recipes_file):
+        with open(recipes_file, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get("recipe_name", "").lower() == recipe_name.lower():
+                    ingredients_json = json.loads(row.get("ingredients_json", "{}"))
+                    portion_per_person = row.get("portion_per_person", "true").lower() == "true"
+                    break
+                    
+    if not ingredients_json:
+        ingredients_json = {i.lower(): 1.0 for i in meal.get("ingredients_used", [])}
+        portion_per_person = True
+        
+    family_size = plan.get("household_economics", {}).get("family_size", 4)
+    
+    # 3. Restore inventory quantities
+    try:
+        for ing_name, base_qty in ingredients_json.items():
+            db_ing = normalize_ingredient_name(ing_name)
+            addition = base_qty * family_size if portion_per_person else base_qty
+            
+            cursor.execute("SELECT quantity FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
+            row = cursor.fetchone()
+            if row:
+                new_qty = float(row["quantity"]) + addition
+                cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
+                
+        # 4. Delete the MealExecution record
+        cursor.execute("DELETE FROM MealExecution WHERE day = ? AND meal_type = ?", (req.day, m_type))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Database undo failed: {e}")
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
+            
+    # 5. Remove the exact trace entry
+    trace_input_match = f"Meal Completed: Day {req.day} {req.meal_type.capitalize()} ({recipe_name})"
+    if "agent_reasoning" in plan and "agent_trace" in plan["agent_reasoning"]:
+        original_trace = plan["agent_reasoning"]["agent_trace"]
+        # Filter out the matching trace log (keep all others)
+        plan["agent_reasoning"]["agent_trace"] = [t for t in original_trace if t.get("input") != trace_input_match]
+        
+    # Save plan back to disk
+    plan_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'meal_plan.json')
+    with open(plan_file, 'w', encoding='utf-8') as f:
+        json.dump(plan, f, indent=2)
+        
+    return {
+        "status": "success",
+        "message": f"Meal completion undone and inventory restored for {recipe_name}."
     }
 
 @router.get("/inventory")

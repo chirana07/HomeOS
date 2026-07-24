@@ -66,6 +66,26 @@ export async function completeMeal(day, mealType) {
   return response.json();
 }
 
+export async function undoMeal(day, mealType) {
+  const response = await fetch('/api/plan/undo-meal', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      day: parseInt(day, 10),
+      meal_type: mealType,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Failed to undo meal.');
+  }
+
+  return response.json();
+}
+
 export async function addReceipt(data) {
   const response = await fetch('/api/receipts/', {
     method: 'POST',
@@ -126,5 +146,12 @@ export async function chatWithAssistantVoice(formData) {
     throw new Error(errMsg);
   }
 
-  return response.blob();
+  const blob = await response.blob();
+  const transcriptHeader = response.headers.get('X-Assistant-Transcript');
+  let transcript = '';
+  if (transcriptHeader) {
+    transcript = decodeURIComponent(transcriptHeader);
+  }
+
+  return { blob, transcript };
 }

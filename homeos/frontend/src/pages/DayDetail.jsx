@@ -31,9 +31,40 @@ export default function DayDetail() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400">
-        <div className="w-10 h-10 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mb-4" />
-        <p className="font-semibold text-sm">Loading Day {id} Details...</p>
+      <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
+        <div className="mb-8">
+          <div className="w-32 h-4 bg-slate-800 rounded animate-pulse"></div>
+        </div>
+        <div className="flex justify-between items-center mb-10 pb-6 border-b border-slate-800/80">
+          <div>
+            <div className="w-64 h-8 bg-slate-800 rounded animate-pulse mb-3"></div>
+            <div className="w-96 h-4 bg-slate-800 rounded animate-pulse"></div>
+          </div>
+          <div className="w-48 h-12 bg-slate-800 rounded-2xl animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="glass rounded-2xl p-6 h-[400px] border border-slate-800 animate-pulse flex flex-col">
+              <div className="flex gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-slate-800"></div>
+                <div className="flex-1">
+                  <div className="w-16 h-3 bg-slate-800 rounded mb-2"></div>
+                  <div className="w-full h-5 bg-slate-800 rounded"></div>
+                </div>
+              </div>
+              <div className="space-y-2 mb-6">
+                <div className="w-full h-3 bg-slate-800 rounded"></div>
+                <div className="w-5/6 h-3 bg-slate-800 rounded"></div>
+                <div className="w-4/6 h-3 bg-slate-800 rounded"></div>
+              </div>
+              <div className="w-24 h-4 bg-slate-800 rounded mb-3"></div>
+              <div className="flex gap-2 mb-auto">
+                <div className="w-16 h-6 bg-slate-800 rounded-lg"></div>
+                <div className="w-20 h-6 bg-slate-800 rounded-lg"></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

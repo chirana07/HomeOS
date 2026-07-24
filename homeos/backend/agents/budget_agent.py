@@ -15,7 +15,16 @@ def budget_agent(state: AgentState):
     prompt_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     weekly_plan = state.get("weekly_plan", {})
     inventory = state.get("inventory", [])
-    inventory_names = {item["name"].lower() for item in inventory}
+    inventory_names = set()
+    for item in inventory:
+        try:
+            qty = float(item.get("quantity", 1.0))
+            orig_qty = float(item.get("original_quantity", qty))
+        except (ValueError, TypeError):
+            qty = 1.0
+            orig_qty = 1.0
+        if qty > (orig_qty * 0.2):
+            inventory_names.add(item["name"].lower())
     
     # Load prices
     prices_file = os.path.join(prompt_dir, 'data', 'prices.csv')
