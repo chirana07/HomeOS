@@ -15,3 +15,14 @@ homeos/backend/data/meal_plan.json
 
 node_modules/
 dist/
+
+
+# IDEs
+.idea/
+.vscode/
+
+# AI assistants
+.claude/
+
+# Expo
+mobile/.expo/
