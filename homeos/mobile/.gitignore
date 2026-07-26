@@ -68,3 +68,15 @@ dist/
 
 # Expo
 mobile/.expo/
+
+# IDE
+.idea/
+
+# VS Code
+.vscode/
+
+# AI tools
+.claude/
+
+# Expo
+mobile/.expo/
