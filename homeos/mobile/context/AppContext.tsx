@@ -1,20 +1,17 @@
 // AppContext.tsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { 
-  MOCK_PLAN, 
-  MOCK_INVENTORY, 
-  MOCK_PANTRY_NAMES, 
-  MOCK_CONVERSATIONS 
-} from '../services/mockData';
 import * as api from '../services/api';
 
 interface AppContextType {
-  isDemoMode: boolean;
-  setDemoMode: (val: boolean) => void;
   isJudgeMode: boolean;
   setJudgeMode: (val: boolean) => void;
   isOffline: boolean;
   setIsOffline: (val: boolean) => void;
+  isLoading: boolean;
+  setIsLoading: (val: boolean) => void;
+  error: string | null;
+  setError: (val: string | null) => void;
+  
   currentPlan: any;
   setCurrentPlan: (plan: any) => void;
   inventory: any[];
@@ -27,10 +24,13 @@ interface AppContextType {
   completeMeal: (day: number, mealType: string, isUndo?: boolean) => Promise<boolean>;
   generateNewPlan: (budget: number, familySize: number) => Promise<void>;
   ingestReceipt: (storeName: string, date: string, rawText: string) => Promise<any>;
+  ingestReceiptImage: (formData: FormData) => Promise<any>;
+  confirmReceiptSave: (payload: api.ConfirmReceiptPayload) => Promise<any>;
   
   // Assistant Chat
   chatHistory: Array<{ id: string; sender: 'user' | 'assistant'; text: string; audioUrl?: string }>;
   addChatMessage: (sender: 'user' | 'assistant', text: string, audioUrl?: string) => void;
+  sendChatMessage: (text: string) => Promise<void>;
   
   // Agent Replay Animation
   isThinking: boolean;
@@ -41,45 +41,79 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDemoMode, setDemoMode] = useState<boolean>(true);
   const [isJudgeMode, setJudgeMode] = useState<boolean>(false);
   const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [activeReplayStep, setActiveReplayStep] = useState<number>(-1);
 
-  // Core Data States
-  const [currentPlan, setCurrentPlan] = useState<any>(MOCK_PLAN);
-  const [inventory, setInventory] = useState<any[]>(MOCK_INVENTORY);
-  const [pantryList, setPantryList] = useState<string[]>(MOCK_PANTRY_NAMES);
-  const [chatHistory, setChatHistory] = useState<any[]>(MOCK_CONVERSATIONS);
+  // Core Data States (Initialized empty, populated strictly from backend APIs)
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [pantryList, setPantryList] = useState<string[]>([]);
+  const [chatHistory, setChatHistory] = useState<Array<{ id: string; sender: 'user' | 'assistant'; text: string; audioUrl?: string }>>([
+    { id: '1', sender: 'assistant', text: "Hello! I'm HomeOS Assistant. How can I help with your household today?" }
+  ]);
 
-  // Sync state if demo mode changes
+  // Initial load on mount with Startup Health Check
   useEffect(() => {
-    if (isDemoMode) {
-      setCurrentPlan(MOCK_PLAN);
-      setInventory(MOCK_INVENTORY);
-      setPantryList(MOCK_PANTRY_NAMES);
-      setChatHistory(MOCK_CONVERSATIONS);
-    } else {
+    const runStartupHealthCheck = async () => {
+      console.log('\n====================================================');
+      console.log('[HomeOS Mobile Startup]');
+      console.log('Initiating backend health check...');
+      try {
+        const health = await api.checkHealth();
+        if (health.status === 'healthy' || health.status === 'connected') {
+          console.log('✓ FastAPI Backend: Connected');
+          console.log('✓ Target API URL:', api.BASE_URL);
+        } else {
+          console.log('⚠️ Backend Health Warning:', health.message || health.status);
+        }
+      } catch (err: any) {
+        console.log('❌ Backend Connection Failed at Startup');
+        console.log('Target API URL:', api.BASE_URL);
+        console.log('Reason:', err.message);
+      }
+      console.log('====================================================\n');
       refreshData();
-    }
-  }, [isDemoMode]);
+    };
+
+    runStartupHealthCheck();
+  }, []);
 
   const refreshData = async () => {
-    if (isDemoMode) return;
+    setIsLoading(true);
+    setError(null);
     try {
       setIsOffline(false);
-      const plan = await api.getPlan();
-      setCurrentPlan(plan);
+      
+      const [planRes, invRes, pantryRes] = await Promise.allSettled([
+        api.getPlan(),
+        api.getInventory(),
+        api.getPantry()
+      ]);
 
-      const inv = await api.getInventory();
-      setInventory(inv);
+      if (planRes.status === 'fulfilled') {
+        setCurrentPlan(planRes.value);
+      } else {
+        console.log('No plan loaded or endpoint error:', planRes.reason);
+      }
 
-      const pnt = await api.getPantry();
-      setPantryList(pnt);
-    } catch (err) {
-      console.log('Failed fetching live data. Running offline cached mode.', err);
+      if (invRes.status === 'fulfilled') {
+        setInventory(Array.isArray(invRes.value) ? invRes.value : invRes.value.inventory || []);
+      }
+
+      if (pantryRes.status === 'fulfilled') {
+        setPantryList(Array.isArray(pantryRes.value) ? pantryRes.value : []);
+      }
+
+    } catch (err: any) {
+      console.error('Failed fetching live data from backend.', err);
       setIsOffline(true);
+      setError(err?.message || 'Failed to communicate with HomeOS service.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,238 +124,122 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ]);
   };
 
-  // Complete / Undo Meal
-  const completeMeal = async (day: number, mealType: string, isUndo = false) => {
-    if (isDemoMode) {
-      // Simulate inventory logic locally
-      const planCopy = JSON.parse(JSON.stringify(currentPlan));
-      const dayKey = `day_${day}`;
-      if (!planCopy.daily_plan[dayKey] || !planCopy.daily_plan[dayKey][mealType]) return false;
-
-      const meal = planCopy.daily_plan[dayKey][mealType];
-      meal.status = isUndo ? 'Pending' : 'Completed';
-
-      // Scaling ingredients by family size
-      const familySize = planCopy.household_economics?.family_size || 4;
-      const ingredients = meal.ingredients_used || [];
-      const updatedInventory = [...inventory];
-      const newlyDepleted: any[] = [];
-
-      ingredients.forEach((ingName: string) => {
-        const itemIdx = updatedInventory.findIndex(i => i.name.toLowerCase() === ingName.toLowerCase());
-        if (itemIdx !== -1) {
-          const item = updatedInventory[itemIdx];
-          const unitScale = item.unit === 'g' || item.unit === 'ml' ? 100 : 1; // simple unit scalar
-          const deduction = unitScale * familySize;
-          
-          if (isUndo) {
-            item.current_stock += deduction;
-            if (item.current_stock > item.original_quantity) {
-              item.original_quantity = item.current_stock;
-            }
-          } else {
-            item.current_stock = Math.max(0, item.current_stock - deduction);
-            // If drops to <= 20% of original, add to shopping list
-            if (item.current_stock <= item.original_quantity * 0.2) {
-              newlyDepleted.push({
-                item: item.name,
-                qty: `${unitScale * 2} ${item.unit}`,
-                cost: item.avg_price || 150,
-                priority: item.current_stock === 0 ? 'high' : 'medium'
-              });
-            }
-          }
-        }
-      });
-
-      // Update trace
-      if (isUndo) {
-        // filter trace
-        planCopy.agent_reasoning.agent_trace = planCopy.agent_reasoning.agent_trace.filter(
-          (t: any) => !t.input.includes(`Meal Completed: Day ${day} ${mealType}`)
-        );
-      } else {
-        const traceEntry = {
-          agent: "Inventory Update Agent",
-          input: `Meal Completed: Day ${day} ${mealType} (${meal.meal_name})`,
-          decision: `Deducted recipe ingredients scaled for family size ${familySize}.`,
-          output: `Deducted ingredients from local SQLite db. Remaining stock updated.`
-        };
-        planCopy.agent_reasoning.agent_trace.push(traceEntry);
-
-        // Update Shopping List
-        if (newlyDepleted.length > 0) {
-          if (!planCopy.shopping_list) planCopy.shopping_list = [];
-          newlyDepleted.forEach(newItem => {
-            const exists = planCopy.shopping_list.some((s: any) => s.item.toLowerCase() === newItem.item.toLowerCase());
-            if (!exists) {
-              planCopy.shopping_list.push(newItem);
-            }
-          });
-        }
-      }
-
-      setInventory(updatedInventory);
-      setCurrentPlan(planCopy);
-      return true;
-    } else {
-      try {
-        if (isUndo) {
-          await api.undoMeal(day, mealType);
-        } else {
-          await api.completeMeal(day, mealType);
-        }
-        await refreshData();
-        return true;
-      } catch (err) {
-        console.error(err);
-        return false;
-      }
+  const sendChatMessage = async (text: string) => {
+    if (!text.trim()) return;
+    addChatMessage('user', text);
+    setIsThinking(true);
+    
+    try {
+      const res = await api.chatWithAssistantText(text);
+      const reply = res.response || res.transcript || "I've processed your request.";
+      addChatMessage('assistant', reply);
+      
+      // If receipt tool call was triggered by backend, refresh data automatically
+      await refreshData();
+    } catch (err: any) {
+      addChatMessage('assistant', "I'm sorry, I'm having trouble connecting to my backend right now.");
+    } finally {
+      setIsThinking(false);
     }
   };
 
-  // Generate Plan Simulation
+  // Complete / Undo Meal via Backend API
+  const completeMeal = async (day: number, mealType: string, isUndo = false) => {
+    try {
+      if (isUndo) {
+        await api.undoMeal(day, mealType);
+      } else {
+        await api.completeMeal(day, mealType);
+      }
+      await refreshData();
+      return true;
+    } catch (err: any) {
+      console.error('Error recording meal completion:', err);
+      setError(err?.message || 'Failed to record meal completion.');
+      return false;
+    }
+  };
+
+  // Generate Plan via LangGraph Workflow API
   const generateNewPlan = async (budget: number, familySize: number) => {
     setIsThinking(true);
     setActiveReplayStep(0);
 
-    // Simulate Agent Replay Steps over 3.5 seconds
-    const totalSteps = 7;
-    for (let i = 0; i < totalSteps; i++) {
-      setActiveReplayStep(i);
-      await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const plan = await api.generatePlan(budget, familySize, pantryList);
+      setCurrentPlan(plan);
+      await refreshData();
+    } catch (err: any) {
+      console.error('Error generating new plan:', err);
+      setError(err?.message || 'Plan generation failed.');
+    } finally {
+      setIsThinking(false);
+      setActiveReplayStep(-1);
     }
-
-    if (isDemoMode) {
-      // Setup reset plan
-      const resetPlan = JSON.parse(JSON.stringify(MOCK_PLAN));
-      // Reset statuses
-      Object.keys(resetPlan.daily_plan).forEach(day => {
-        resetPlan.daily_plan[day].breakfast.status = 'Pending';
-        resetPlan.daily_plan[day].lunch.status = 'Pending';
-        resetPlan.daily_plan[day].dinner.status = 'Pending';
-      });
-      resetPlan.household_economics.family_size = familySize;
-      resetPlan.household_economics.estimated_savings = budget - resetPlan.household_economics.estimated_cost;
-      
-      setCurrentPlan(resetPlan);
-      // Reset inventory mock quantities to full
-      const resetInventory = inventory.map(item => ({
-        ...item,
-        current_stock: item.original_quantity
-      }));
-      setInventory(resetInventory);
-    } else {
-      try {
-        const plan = await api.generatePlan(budget, familySize, pantryList);
-        setCurrentPlan(plan);
-        const inv = await api.getInventory();
-        setInventory(inv);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    
-    setIsThinking(false);
-    setActiveReplayStep(-1);
   };
 
-  // Receipt Ingestion
+  // Receipt Text Ingestion API
   const ingestReceipt = async (storeName: string, date: string, rawText: string) => {
-    if (isDemoMode) {
-      // Simulate parser logic locally
-      // split lines and match
-      const lines = rawText.split('\n');
-      const parsedItems: any[] = [];
-      let totalExpense = 0;
-
-      lines.forEach(line => {
-        const match = line.match(/(.+?)\s+(\d+)\s*(\w+)?\s*-\s*(\d+)/i);
-        if (match) {
-          const name = match[1].trim();
-          const qty = parseFloat(match[2]);
-          const unit = match[3] || 'pcs';
-          const price = parseFloat(match[4]);
-          parsedItems.push({ name, qty, unit, price });
-          totalExpense += price;
-        } else {
-          // fallback parser
-          const words = line.split(' ');
-          if (words.length >= 2) {
-            const name = words[0];
-            const qty = parseFloat(words[1]) || 1;
-            parsedItems.push({ name, qty, unit: 'pcs', price: 150 });
-            totalExpense += 150;
-          }
-        }
+    try {
+      const res = await api.addReceipt({
+        raw_text: rawText,
+        purchase_date: date,
+        store_name: storeName
       });
-
-      if (parsedItems.length === 0) {
-        return { success: false, message: 'I couldn\'t parse any items from this receipt. Try format: "item 2 pcs - 200"' };
-      }
-
-      // Update local inventory state
-      const updatedInventory = [...inventory];
-      parsedItems.forEach(item => {
-        const idx = updatedInventory.findIndex(i => i.name.toLowerCase() === item.name.toLowerCase());
-        if (idx !== -1) {
-          updatedInventory[idx].current_stock += item.qty;
-          updatedInventory[idx].original_quantity = Math.max(updatedInventory[idx].original_quantity, updatedInventory[idx].current_stock);
-          updatedInventory[idx].avg_price = (updatedInventory[idx].avg_price + item.price) / 2;
-        } else {
-          updatedInventory.push({
-            id: Date.now() + Math.random(),
-            name: item.name.charAt(0).toUpperCase() + item.name.slice(1),
-            current_stock: item.qty,
-            original_quantity: item.qty,
-            unit: item.unit,
-            expiry_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            avg_price: item.price
-          });
-        }
-
-        // Add to pantry names
-        if (!pantryList.includes(item.name)) {
-          setPantryList(prev => [...prev, item.name]);
-        }
-      });
-
-      setInventory(updatedInventory);
+      await refreshData();
       return {
         success: true,
-        parsed_items: parsedItems.length,
-        total_expense: totalExpense,
-        warnings: []
+        parsed_items: res.parsed_items,
+        total_expense: res.total_expense,
+        warnings: res.warnings || []
       };
-    } else {
-      try {
-        const res = await api.addReceipt({
-          raw_text: rawText,
-          purchase_date: date,
-          store_name: storeName
-        });
-        await refreshData();
-        return {
-          success: true,
-          parsed_items: res.parsed_items,
-          total_expense: res.total_expense,
-          warnings: res.warnings || []
-        };
-      } catch (err: any) {
-        return { success: false, message: err.message || 'Failed to communicate with receipt ingestion API.' };
-      }
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to ingest receipt text.' };
+    }
+  };
+
+  // Receipt Image Ingestion API (Multimodal OCR - Stage 1 Parsing)
+  const ingestReceiptImage = async (formData: FormData) => {
+    try {
+      const res = await api.uploadReceipt(formData);
+      return {
+        success: true,
+        store_name: res.store_name || "Supermarket",
+        purchase_date: res.purchase_date || new Date().toISOString().split('T')[0],
+        items: res.items || [],
+        timings: res.timings
+      };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to process receipt image.' };
+    }
+  };
+
+  // Receipt Confirmation API (Stage 2 Database Save)
+  const confirmReceiptSave = async (payload: api.ConfirmReceiptPayload) => {
+    try {
+      const res = await api.confirmReceipt(payload);
+      await refreshData();
+      return {
+        success: true,
+        parsed_items: res.parsed_items,
+        total_expense: res.total_expense
+      };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to save confirmed receipt.' };
     }
   };
 
   return (
     <AppContext.Provider
       value={{
-        isDemoMode,
-        setDemoMode,
         isJudgeMode,
         setJudgeMode,
         isOffline,
         setIsOffline,
+        isLoading,
+        setIsLoading,
+        error,
+        setError,
         currentPlan,
         setCurrentPlan,
         inventory,
@@ -332,8 +250,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completeMeal,
         generateNewPlan,
         ingestReceipt,
+        ingestReceiptImage,
+        confirmReceiptSave,
         chatHistory,
         addChatMessage,
+        sendChatMessage,
         isThinking,
         setIsThinking,
         activeReplayStep
