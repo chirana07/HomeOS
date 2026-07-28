@@ -1,13 +1,14 @@
-# plan.py
 import os
 import json
 import csv
+import time
 import sqlite3
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from graph.workflow import compiled_graph
 from tools.db import get_db_connection
+from logger import log_api_request, log_api_error
 
 router = APIRouter()
 
@@ -107,6 +108,7 @@ def generate_plan(req: GenerationRequest):
         "agent_trace": []
     }
     
+    start_time = time.time()
     try:
         # Run LangGraph compilation synchronously
         final_state = compiled_graph.invoke(initial_state)
@@ -118,10 +120,23 @@ def generate_plan(req: GenerationRequest):
                 report = json.load(f)
                 global _last_plan
                 _last_plan = report
+                
+                log_api_request(
+                    method="POST",
+                    route="/api/plan/generate",
+                    steps=[
+                        ("Inventory Loaded", f"{len(req.inventory)} items"),
+                        ("LangGraph Agents Workflow", "Coordinator -> Inventory -> Waste -> Recipe -> Reflection -> Meal Plan"),
+                        ("Plan Compilation", "Meal Plan compiled successfully")
+                    ],
+                    execution_time=time.time() - start_time,
+                    status="SUCCESS"
+                )
                 return report
                 
         raise HTTPException(status_code=500, detail="Reporting Agent failed to output final meal plan database.")
     except Exception as e:
+        log_api_error("POST", "/api/plan/generate", e, "LangGraph execution or GEMINI_API_KEY connection failed")
         raise HTTPException(status_code=500, detail=f"Graph execution failed: {e}")
 
 @router.get("/trace")
