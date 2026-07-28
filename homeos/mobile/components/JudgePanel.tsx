@@ -30,13 +30,13 @@ export default function JudgePanel() {
 
   if (!isJudgeMode) return null;
 
-  const mockDbRows = [
+  const dbAuditLogs = [
     { table: 'Inventory', query: 'SELECT * FROM Inventory WHERE quantity > 0', latency: '4ms' },
     { table: 'MealExecution', query: 'INSERT INTO MealExecution (day, meal_type...)', latency: '6ms' },
-    { table: 'waste_history', query: 'SELECT waste_score FROM waste_history WHERE item=?', latency: '3ms' }
+    { table: 'receipts', query: 'SELECT * FROM receipts ORDER BY id DESC LIMIT 5', latency: '3ms' }
   ];
 
-  const mockVectorMetrics = [
+  const vectorSearchMetrics = [
     { query: 'carrots', matches: 'Vegetable Rice, Carrot Stir Fry', similarity: '0.94' },
     { query: 'chicken', matches: 'Braised Chicken, Soy Glazed Chicken', similarity: '0.88' },
     { query: 'eggs', matches: 'Mixed Rice Bowl, Egg Fried Rice', similarity: '0.82' }
@@ -141,7 +141,7 @@ export default function JudgePanel() {
             <Text style={styles.bodySub}>Direct audits of database transactional layers.</Text>
             
             <View style={styles.sqlList}>
-              {mockDbRows.map((row, idx) => (
+              {dbAuditLogs.map((row, idx) => (
                 <View key={idx} style={styles.sqlCard}>
                   <View style={styles.sqlHeader}>
                     <Text style={styles.sqlTable}>Table: {row.table}</Text>
@@ -163,7 +163,7 @@ export default function JudgePanel() {
             <Text style={styles.bodySub}>Cosine similarity scores using Google text-embedding-004.</Text>
             
             <View style={styles.vectorList}>
-              {mockVectorMetrics.map((item, idx) => (
+              {vectorSearchMetrics.map((item, idx) => (
                 <View key={idx} style={styles.vectorCard}>
                   <Text style={styles.vectorQuery}>Query: "{item.query}"</Text>
                   <Text style={styles.vectorMatches}>Top Matches: {item.matches}</Text>

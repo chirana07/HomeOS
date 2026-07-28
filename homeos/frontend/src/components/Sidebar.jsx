@@ -1,13 +1,16 @@
+// Sidebar.jsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Route, RefreshCw, Cpu, FileText } from 'lucide-react';
+import { LayoutDashboard, Layers, Route, Cpu, Camera, Bot } from 'lucide-react';
 
 export default function Sidebar() {
   const location = useLocation();
 
   const menuItems = [
     { path: '/', name: 'Dashboard', icon: LayoutDashboard },
-    { path: '/receipts', name: 'Receipts', icon: FileText },
+    { path: '/pantry', name: 'Pantry Cabinet', icon: Layers },
+    { path: '/assistant', name: 'AI Assistant', icon: Bot },
+    { path: '/receipts', name: 'Receipt Review', icon: Camera },
     { path: '/trace', name: 'Agent Trace', icon: Route },
   ];
 
@@ -21,13 +24,13 @@ export default function Sidebar() {
           </div>
           <div>
             <div className="font-bold text-lg leading-tight tracking-tight text-white">HomeOS</div>
-            <div className="text-[10px] text-cyan-400 font-semibold tracking-wider uppercase">Economic AI</div>
+            <div className="text-[10px] text-cyan-400 font-semibold tracking-wider uppercase">Household AI OS</div>
           </div>
         </div>
 
         {/* Navigation Items */}
         <nav className="flex flex-col gap-1 px-4 py-6">
-          <div className="text-[10px] text-slate-500 font-bold px-3 mb-2 tracking-wider uppercase">Workspace</div>
+          <div className="text-[10px] text-slate-500 font-bold px-3 mb-2 tracking-wider uppercase">Workspace Navigation</div>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -37,7 +40,7 @@ export default function Sidebar() {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-sm ${
                   isActive 
-                    ? 'bg-gradient-to-r from-indigo-600/20 to-cyan-500/10 text-white border-l-4 border-indigo-500 pl-3' 
+                    ? 'bg-gradient-to-r from-indigo-600/20 to-cyan-500/10 text-white border-l-4 border-indigo-500 pl-3 font-bold' 
                     : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
               >
@@ -56,7 +59,7 @@ export default function Sidebar() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <span className="text-xs text-slate-400 font-medium">HomeOS Active (V1)</span>
+          <span className="text-xs text-slate-400 font-medium">SQLite Engine Synced</span>
         </div>
       </div>
     </aside>

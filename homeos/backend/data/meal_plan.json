@@ -401,20 +401,7 @@
       }
     }
   },
-  "shopping_list": [
-    {
-      "item": "Carrots",
-      "qty": "1 g",
-      "cost": 150,
-      "priority": "medium"
-    },
-    {
-      "item": "Eggs",
-      "qty": "1 pcs",
-      "cost": 480,
-      "priority": "high"
-    }
-  ],
+  "shopping_list": [],
   "household_economics": {
     "waste_prevented_items": [
       "Eggs",
@@ -442,27 +429,27 @@
     "agent_trace": [
       {
         "agent": "Coordinator Agent",
-        "input": "Budget: LKR 10000.0 | Family Size: 4 | Inventory: ['beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
+        "input": "Budget: LKR 10000.0 | Family Size: 4 | Inventory: ['Almond Milk', 'Free-Range Eggs', 'Organic Bananas', 'Pasta Fusilli', 'Tomato Sauce', 'Whole Wheat Bread', 'beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'milk', 'onions', 'rice', 'soy sauce', 'tomatoes']",
         "decision": "Successfully parsed inputs and retrieved 7-day MealHistory.",
-        "output": "Goal state set. Objective: 'Optimize 3-day meal plan for a family of 4 within LKR 10000.0. Prioritize perishables, and avoid repeating meals: Tomato Egg Soup, Chicken and Beans Stir Fry, Onion and Egg Omelet, Braised Chicken with Carrots, Egg Rice Bowl, Carrot Ginger Soup, Boiled Eggs with Rice, Scrambled Eggs on Rice, Egg and Tomato Stir Fry, Vegetable Rice, Carrot Salad, Chicken and Rice, Garlic Rice, Green Beans Stir Fry, Mixed Rice Bowl, Steamed Rice, Soy Glazed Chicken, Chicken Fried Rice.'"
+        "output": "Goal state set. Objective: 'Optimize 3-day meal plan for a family of 4 within LKR 10000.0. Prioritize perishables, and avoid repeating meals: Onion and Egg Omelet, Chicken and Beans Stir Fry, Carrot Ginger Soup, Egg Rice Bowl, Soy Glazed Chicken, Egg and Tomato Stir Fry, Chicken Fried Rice, Steamed Rice, Braised Chicken with Carrots, Garlic Rice, Mixed Rice Bowl, Carrot Salad, Boiled Eggs with Rice, Scrambled Eggs on Rice, Vegetable Rice, Chicken and Rice, Tomato Egg Soup, Green Beans Stir Fry.'"
       },
       {
         "agent": "Inventory Agent",
-        "input": "User Inventory List: ['beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'onions', 'rice', 'soy sauce', 'tomatoes']",
+        "input": "User Inventory List: ['Almond Milk', 'Free-Range Eggs', 'Organic Bananas', 'Pasta Fusilli', 'Tomato Sauce', 'Whole Wheat Bread', 'beans', 'carrots', 'chicken', 'cooking oil', 'eggs', 'garlic', 'milk', 'onions', 'rice', 'soy sauce', 'tomatoes']",
         "decision": "Matched items against SQLite pantry DB. Flagged 1 urgent item(s).",
-        "output": "Urgent foods: ['Carrots'] | Resolved items: [{'name': 'Beans', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-28'}, {'name': 'Carrots', 'quantity': 0.0, 'unit': 'g', 'expiry_date': '2026-06-23'}, {'name': 'Chicken', 'quantity': 1400.0, 'unit': 'g', 'expiry_date': '2026-06-25'}, {'name': 'Cooking oil', 'quantity': 880.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Eggs', 'quantity': 0.0, 'unit': 'pcs', 'expiry_date': '2026-06-30'}, {'name': 'Garlic', 'quantity': 60.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Onions', 'quantity': 380.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Rice', 'quantity': 2000.0, 'unit': 'g', 'expiry_date': '2026-07-20'}, {'name': 'Soy sauce', 'quantity': 300.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Tomatoes', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-25'}]"
+        "output": "Urgent foods: ['Carrots'] | Resolved items: [{'name': 'Almond milk', 'quantity': 1.0, 'unit': 'L', 'expiry_date': '2026-08-03'}, {'name': 'Free-range eggs', 'quantity': 12.0, 'unit': 'ct', 'expiry_date': '2026-08-17'}, {'name': 'Organic bananas', 'quantity': 1.0, 'unit': 'lb', 'expiry_date': '2026-08-01'}, {'name': 'Pasta fusilli', 'quantity': 1.0, 'unit': 'g', 'expiry_date': '2026-08-03'}, {'name': 'Tomato sauce', 'quantity': 1.0, 'unit': 'oz', 'expiry_date': '2026-08-03'}, {'name': 'Whole wheat bread', 'quantity': 1.0, 'unit': 'pcs', 'expiry_date': '2026-08-01'}, {'name': 'Beans', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-28'}, {'name': 'Carrots', 'quantity': 1001.0, 'unit': 'g', 'expiry_date': '2026-08-17'}, {'name': 'Chicken', 'quantity': 2002.0, 'unit': 'g', 'expiry_date': '2026-07-29'}, {'name': 'Cooking oil', 'quantity': 1000.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Eggs', 'quantity': 34.0, 'unit': 'pcs', 'expiry_date': '2026-08-17'}, {'name': 'Garlic', 'quantity': 100.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Milk', 'quantity': 11.0, 'unit': 'pcs', 'expiry_date': '2026-08-03'}, {'name': 'Onions', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-07-10'}, {'name': 'Rice', 'quantity': 5000.0, 'unit': 'g', 'expiry_date': '2026-07-20'}, {'name': 'Soy sauce', 'quantity': 500.0, 'unit': 'ml', 'expiry_date': '2026-12-20'}, {'name': 'Tomatoes', 'quantity': 500.0, 'unit': 'g', 'expiry_date': '2026-06-25'}]"
       },
       {
         "agent": "Waste Agent",
-        "input": "Pantry stock items: ['Beans', 'Carrots', 'Chicken', 'Cooking oil', 'Eggs', 'Garlic', 'Onions', 'Rice', 'Soy sauce', 'Tomatoes']",
+        "input": "Pantry stock items: ['Almond milk', 'Free-range eggs', 'Organic bananas', 'Pasta fusilli', 'Tomato sauce', 'Whole wheat bread', 'Beans', 'Carrots', 'Chicken', 'Cooking oil', 'Eggs', 'Garlic', 'Milk', 'Onions', 'Rice', 'Soy sauce', 'Tomatoes']",
         "decision": "Successfully calculated waste risk from SQLite history tables.",
         "output": "Waste risk rankings: [{'item': 'Carrots', 'waste_score': 0.8, 'level': 'high', 'reason': 'Perishable \u00b7 Score 0.8'}, {'item': 'Eggs', 'waste_score': 0.5, 'level': 'medium', 'reason': 'Perishable \u00b7 Score 0.5'}, {'item': 'Rice', 'waste_score': 0.2, 'level': 'low', 'reason': 'Perishable \u00b7 Score 0.2'}, {'item': 'Soy sauce', 'waste_score': 0.1, 'level': 'low', 'reason': 'Perishable \u00b7 Score 0.1'}]"
       },
       {
         "agent": "Recipe Retrieval Agent",
-        "input": "Qdrant Query: 'Carrots, Beans, Chicken, Cooking oil, Eggs, Garlic, Onions, Rice, Soy sauce, Tomatoes'",
+        "input": "Qdrant Query: 'Carrots, Almond milk, Free-range eggs, Organic bananas, Pasta fusilli, Tomato sauce, Whole wheat bread, Beans, Chicken, Cooking oil, Eggs, Garlic, Milk, Onions, Rice, Soy sauce, Tomatoes'",
         "decision": "Successfully conducted similarity search in Qdrant collection using text-embedding-004.",
-        "output": "Retrieved 20 recipe candidates: ['Vegetable Fried Rice', 'Egg Fried Rice', 'Rice and Egg Curry', 'Chicken Fried Rice', 'Braised Chicken with Carrots', 'Chicken and Beans Stir Fry', 'Mixed Rice Bowl', 'Carrot Stir Fry', 'Green Beans Stir Fry', 'Vegetable Rice', 'Egg Rice Bowl', 'Chicken and Rice', 'Soy Glazed Chicken', 'Carrot Ginger Soup', 'Carrot Salad', 'Egg and Tomato Stir Fry', 'Boiled Eggs with Rice', 'Tomato Egg Soup', 'Garlic Rice', 'Onion and Egg Omelet']"
+        "output": "Retrieved 20 recipe candidates: ['Rice and Egg Curry', 'Vegetable Fried Rice', 'Egg Fried Rice', 'Braised Chicken with Carrots', 'Carrot Stir Fry', 'Carrot Ginger Soup', 'Mixed Rice Bowl', 'Chicken Fried Rice', 'Chicken and Beans Stir Fry', 'Carrot Salad', 'Soy Glazed Chicken', 'Egg Rice Bowl', 'Vegetable Rice', 'Chicken and Rice', 'Egg and Tomato Stir Fry', 'Tomato Egg Soup', 'Green Beans Stir Fry', 'Boiled Eggs with Rice', 'Garlic Rice', 'Onion and Egg Omelet']"
       },
       {
         "agent": "Meal Planner Agent",
@@ -481,30 +468,6 @@
         "input": "Budget: LKR 10000.0 | Estimated Cost: LKR 0.0",
         "decision": "{\"status\": \"PASS\", \"score\": 90, \"reason\": \"Fallback PASS status issued due to Gemini API client lookup error.\"}",
         "output": "Status: PASS | Score: 90 | Reason: Fallback PASS status issued due to Gemini API client lookup error."
-      },
-      {
-        "agent": "Inventory Update Agent",
-        "input": "Meal Completed: Day 1 Breakfast (Braised Chicken with Carrots)",
-        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
-        "output": "Consumed: Chicken, Carrots, Soy sauce, Onions, Garlic, Cooking oil | Deducted: 600 g, 400 g, 80 ml, 120 g, 40 g, 40 ml | Remaining: Chicken: 1400.0 g, Carrots: 600.0 g, Soy sauce: 420.0 ml, Onions: 380.0 g, Garlic: 60.0 g, Cooking oil: 960.0 ml"
-      },
-      {
-        "agent": "Inventory Update Agent",
-        "input": "Meal Completed: Day 1 Lunch (Vegetable Rice)",
-        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
-        "output": "Consumed: Rice, Carrots, Eggs | Deducted: 600 g, 200 g, 8 pcs | Remaining: Rice: 4400.0 g, Carrots: 400.0 g, Eggs: 16.0 pcs"
-      },
-      {
-        "agent": "Inventory Update Agent",
-        "input": "Meal Completed: Day 2 Lunch (Mixed Rice Bowl)",
-        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
-        "output": "Consumed: Rice, Carrots, Eggs, Soy sauce | Deducted: 600 g, 200 g, 8 pcs, 60 ml | Remaining: Rice: 3800.0 g, Carrots: 200.0 g, Eggs: 8.0 pcs, Soy sauce: 360.0 ml"
-      },
-      {
-        "agent": "Inventory Update Agent",
-        "input": "Meal Completed: Day 2 Dinner (Vegetable Fried Rice)",
-        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
-        "output": "Consumed: Rice, Carrots, Eggs, Soy sauce, Cooking oil | Deducted: 600 g, 200 g, 8 pcs, 60 ml, 40 ml | Remaining: Rice: 3200.0 g, Carrots: 0.0 g, Eggs: 0.0 pcs, Soy sauce: 300.0 ml, Cooking oil: 920.0 ml"
       }
     ]
   }
