@@ -275,7 +275,10 @@ def complete_meal(req: CompleteMealRequest):
         with open(prices_file, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                market_prices[row["item"].lower()] = float(row["price"])
+                market_prices[row["item"].lower()] = {
+                    "price": float(row["price"]),
+                    "qty": row["unit"]
+                }
 
     consumed_list = []
     deductions_list = []
@@ -303,10 +306,12 @@ def complete_meal(req: CompleteMealRequest):
             # Add to shopping list if it drops to 20% or less of original capacity
             threshold = original_qty * 0.2
             if new_qty <= threshold and current_qty > threshold:
-                cost = market_prices.get(db_ing, 100.0)
+                price_info = market_prices.get(db_ing, {"price": 100.0, "qty": f"1 {unit}"})
+                cost = price_info["price"]
+                market_unit = price_info["qty"]
                 newly_depleted.append({
                     "item": db_ing.capitalize(),
-                    "qty": f"1 {unit}", 
+                    "qty": market_unit, 
                     "cost": int(cost),
                     "priority": "high" if new_qty == 0.0 else "medium"
                 })

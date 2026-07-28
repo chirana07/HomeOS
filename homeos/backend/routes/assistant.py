@@ -66,6 +66,11 @@ If the user's input is a statement about buying, adding, or purchasing groceries
 [TOOL_CALL: ADD_RECEIPT]
 [RESPONSE: Got it, I've added those items to your pantry.]
 
+If the user's input is a statement about cooking, eating, or consuming something (e.g., "I cooked 2 eggs and 2 slices of bread", "I just ate an apple"), you MUST output EXACTLY this format with the items they consumed:
+[TOOL_CALL: CONSUMED_FOOD]
+[JSON: [{{"name": "eggs", "quantity": 2}}, {{"name": "bread", "quantity": 2}}]]
+[RESPONSE: I've updated the pantry to reflect what you cooked!]
+
 If the user's input is a question or anything else, just output:
 [RESPONSE: <your conversational answer here>]
 
@@ -80,7 +85,7 @@ Always keep your conversational response in 1 to 2 short sentences.
         loop = asyncio.get_event_loop()
         raw_llm_response = await asyncio.wait_for(
             loop.run_in_executor(None, generate_text, system_prompt, message),
-            timeout=5.0
+            timeout=15.0
         )
         t_llm_sec = time.time() - t_llm_start
         log_workflow_step("LLM Response Received", f"LLM Latency: {t_llm_sec:.2f} sec")
@@ -105,11 +110,35 @@ Always keep your conversational response in 1 to 2 short sentences.
         except Exception as e:
             log_workflow_step("Tool Execution Warning", f"Failed to save receipt: {e}")
             
+    if "[TOOL_CALL: CONSUMED_FOOD]" in raw_llm_response:
+        try:
+            import json, re
+            json_match = re.search(r'\[JSON:\s*(\[.*?\])\]', raw_llm_response, re.DOTALL)
+            if json_match:
+                items = json.loads(json_match.group(1))
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                for item in items:
+                    cursor.execute("SELECT quantity FROM Inventory WHERE LOWER(ingredient) = ?", (item['name'].lower(),))
+                    row = cursor.fetchone()
+                    if row:
+                        new_qty = max(0.0, float(row['quantity']) - float(item['quantity']))
+                        cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, item['name'].lower()))
+                conn.commit()
+                conn.close()
+                log_workflow_step("Tool Execution", f"Executed CONSUMED_FOOD tool. Deducted: {items}")
+            else:
+                log_workflow_step("Tool Execution Warning", "Regex failed to extract JSON array.")
+        except Exception as e:
+            log_workflow_step("Tool Execution Warning", f"Failed to deduct consumed food: {e}")
+            
     if "[RESPONSE:" in raw_llm_response:
         response_part = raw_llm_response.split("[RESPONSE:")[1]
         llm_response = response_part.replace("]", "").strip()
     elif raw_llm_response:
-        llm_response = raw_llm_response.replace("[TOOL_CALL: ADD_RECEIPT]", "").strip()
+        import re
+        llm_response = raw_llm_response.replace("[TOOL_CALL: ADD_RECEIPT]", "").replace("[TOOL_CALL: CONSUMED_FOOD]", "").strip()
+        llm_response = re.sub(r'\[JSON:\s*\[.*?\]\]', '', llm_response, flags=re.DOTALL).strip()
 
     t_tool_sec = time.time() - t_tool_start
     t_total_sec = time.time() - t_start
@@ -186,6 +215,11 @@ If the user's input is a statement about buying, adding, or purchasing groceries
 [TOOL_CALL: ADD_RECEIPT]
 [RESPONSE: Got it, I've added those items to your pantry.]
 
+If the user's input is a statement about cooking, eating, or consuming something (e.g., "I cooked 2 eggs and 2 slices of bread", "I just ate an apple"), you MUST output EXACTLY this format with the items they consumed:
+[TOOL_CALL: CONSUMED_FOOD]
+[JSON: [{{"name": "eggs", "quantity": 2}}, {{"name": "bread", "quantity": 2}}]]
+[RESPONSE: I've updated the pantry to reflect what you cooked!]
+
 If the user's input is a question or anything else, just output:
 [RESPONSE: <your conversational answer here>]
 
@@ -203,11 +237,32 @@ Always keep your conversational response in 1 to 2 short sentences. Do not use m
             except Exception as e:
                 print(f"Failed to save voice receipt: {e}")
                 
+        if "[TOOL_CALL: CONSUMED_FOOD]" in raw_llm_response:
+            try:
+                import json, re
+                json_match = re.search(r'\[JSON:\s*(\[.*?\])\]', raw_llm_response, re.DOTALL)
+                if json_match:
+                    items = json.loads(json_match.group(1))
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    for item in items:
+                        cursor.execute("SELECT quantity FROM Inventory WHERE LOWER(ingredient) = ?", (item['name'].lower(),))
+                        row = cursor.fetchone()
+                        if row:
+                            new_qty = max(0.0, float(row['quantity']) - float(item['quantity']))
+                            cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, item['name'].lower()))
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Failed to deduct consumed food voice: {e}")
+
         if "[RESPONSE:" in raw_llm_response:
             response_part = raw_llm_response.split("[RESPONSE:")[1]
             llm_response = response_part.replace("]", "").strip()
         else:
-            llm_response = raw_llm_response.replace("[TOOL_CALL: ADD_RECEIPT]", "").strip()
+            import re
+            llm_response = raw_llm_response.replace("[TOOL_CALL: ADD_RECEIPT]", "").replace("[TOOL_CALL: CONSUMED_FOOD]", "").strip()
+            llm_response = re.sub(r'\[JSON:\s*\[.*?\]\]', '', llm_response, flags=re.DOTALL).strip()
 
     except Exception as e:
         llm_response = "I'm sorry, I am having trouble connecting to my brain right now."

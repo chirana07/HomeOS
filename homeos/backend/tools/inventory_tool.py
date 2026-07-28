@@ -7,7 +7,7 @@ def get_inventory():
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT ingredient, quantity, unit, expiry_date FROM Inventory")
+    cursor.execute("SELECT ingredient, quantity, original_quantity, unit, expiry_date FROM Inventory")
     rows = cursor.fetchall()
     conn.close()
     
@@ -16,6 +16,7 @@ def get_inventory():
         items.append({
             "name": r["ingredient"].capitalize(),  # Keep names capitalized for display/compatibility
             "quantity": r["quantity"],
+            "original_quantity": r["original_quantity"],
             "unit": r["unit"],
             "expiry_date": r["expiry_date"]
         })
