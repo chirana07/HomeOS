@@ -1,107 +1,107 @@
-// pantry.tsx (Visual Pantry Hub)
+// pantry.tsx (Pantry Cabinet Hub)
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   FlatList, 
   TouchableOpacity, 
+  StyleSheet, 
   TextInput,
-  Dimensions
+  RefreshControl,
+  Dimensions,
+  Modal
 } from 'react-native';
 import { useApp } from '../../context/AppContext';
-import { 
-  Search, 
-  Plus, 
-  Minus, 
-  Camera, 
-  Info,
-  Calendar,
-  Layers,
-  Scale
-} from 'lucide-react-native';
-import Animated, { FadeInRight, FadeInUp } from 'react-native-reanimated';
+import { Apple, Search, Calendar, Scale, Info, Layers, Camera, X, ShieldCheck } from 'lucide-react-native';
+import Animated, { FadeInRight, FadeInUp, SlideInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-export default function PantryScreen() {
-  const { inventory, setInventory, isOffline } = useApp();
+export default function PantryTab() {
+  const { inventory, isLoading, refreshData } = useApp();
   const router = useRouter();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedItemForModal, setSelectedItemForModal] = useState<any>(null);
 
-  const categories = ['All', 'Veggies', 'Proteins', 'Grains', 'Pantry Essentials'];
+  const categories = ['All', 'Vegetables', 'Fruits', 'Proteins', 'Dairy', 'Grains', 'Household', 'Pantry Essentials'];
 
-  const getCategoryForItem = (name: string): string => {
-    const n = name.toLowerCase();
-    if (n.includes('carrot') || n.includes('onion') || n.includes('garlic') || n.includes('tomato') || n.includes('bean')) return 'Veggies';
-    if (n.includes('egg') || n.includes('chicken') || n.includes('fish') || n.includes('pork') || n.includes('beef')) return 'Proteins';
-    if (n.includes('rice') || n.includes('flour') || n.includes('oat')) return 'Grains';
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setRefreshing(false);
+  };
+
+  const getItemName = (item: any): string => {
+    return item.name || item.ingredient || 'Item';
+  };
+
+  const getItemStock = (item: any): number => {
+    return typeof item.current_stock === 'number' 
+      ? item.current_stock 
+      : (typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity || '0'));
+  };
+
+  const getCategoryForItem = (item: any): string => {
+    if (item.category) return item.category;
+    const name = getItemName(item).toLowerCase();
+    if (name.includes('carrot') || name.includes('onion') || name.includes('garlic') || name.includes('tomato') || name.includes('spinach') || name.includes('potato')) return 'Vegetables';
+    if (name.includes('apple') || name.includes('banana') || name.includes('orange') || name.includes('berry')) return 'Fruits';
+    if (name.includes('egg') || name.includes('chicken') || name.includes('fish') || name.includes('pork') || name.includes('beef')) return 'Proteins';
+    if (name.includes('milk') || name.includes('cheese') || name.includes('yogurt') || name.includes('butter')) return 'Dairy';
+    if (name.includes('rice') || name.includes('bread') || name.includes('flour') || name.includes('oat')) return 'Grains';
+    if (name.includes('toilet paper') || name.includes('paper towel') || name.includes('soap') || name.includes('foil') || name.includes('bag')) return 'Household';
     return 'Pantry Essentials';
   };
 
-  const handleAdjustQuantity = (id: number, delta: number) => {
-    const updated = inventory.map(item => {
-      if (item.id === id) {
-        const step = item.unit === 'g' || item.unit === 'ml' ? 100 : 1;
-        const newQty = Math.max(0, item.current_stock + (step * delta));
-        return {
-          ...item,
-          current_stock: newQty,
-          original_quantity: Math.max(item.original_quantity, newQty)
-        };
-      }
-      return item;
-    });
-    setInventory(updated);
-  };
-
   const filteredInventory = inventory.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || getCategoryForItem(item.name) === selectedCategory;
+    const itemName = getItemName(item).toLowerCase();
+    const itemCategory = getCategoryForItem(item).toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    
+    const matchesSearch = !query || itemName.includes(query) || itemCategory.includes(query);
+    const matchesCategory = selectedCategory === 'All' || itemCategory === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
-  // Expiry ring helpers
-  const getExpiryColor = (expiryStr: string) => {
-    const expiry = new Date(expiryStr);
-    const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= 1) return '#f43f5e'; // Red (expires tomorrow/today)
-    if (diffDays <= 3) return '#f59e0b'; // Orange
-    return '#10b981'; // Green
+  const getExpiryColor = (item: any) => {
+    const status = item.freshness_status;
+    if (status === 'Non-Perishable') return '#94a3b8';
+    if (status === 'Fresh') return '#10b981';
+    if (status === 'Expires Soon') return '#f59e0b';
+    if (status === 'Expired') return '#f43f5e';
+    return '#10b981';
   };
 
-  const getExpiryText = (expiryStr: string) => {
-    const expiry = new Date(expiryStr);
-    const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return 'Expired';
-    if (diffDays === 0) return 'Expires today';
-    if (diffDays === 1) return 'Expires tomorrow';
-    return `${diffDays} days left`;
+  const getExpiryText = (item: any) => {
+    const status = item.freshness_status;
+    if (status === 'Non-Perishable') return 'Non-Perishable';
+    if (status === 'Fresh') return `Fresh (${item.days_remaining ?? 7}d left)`;
+    if (status === 'Expires Soon') return `Expires Soon (${item.days_remaining ?? 2}d left)`;
+    if (status === 'Expired') return `Expired`;
+    return item.days_remaining ? `${item.days_remaining}d left` : 'Fresh';
   };
 
   return (
     <View style={styles.container}>
-      {/* Title Header */}
+      {/* Top Header Bar */}
       <View style={styles.header}>
-        <Text style={styles.title}>Your Pantry Cabinet</Text>
-        <Text style={styles.subText}>AI-analyzed stock levels and shelf life.</Text>
+        <Text style={styles.title}>Cabinet & Inventory</Text>
+        <Text style={styles.subText}>Live SQLite Inventory Records</Text>
       </View>
 
-      {/* Smart Pantry Insights Banner */}
+      {/* Insight Banner */}
       <Animated.View entering={FadeInUp} style={styles.insightBanner}>
         <Info size={16} color="#6366f1" style={{ marginTop: 2 }} />
         <View style={{ flex: 1 }}>
           <Text style={styles.insightTitle}>Pantry Intelligence</Text>
           <Text style={styles.insightBody}>
-            You have ingredients for 8 meals. Chicken and Eggs will expire in 2 days. Onions are well-stocked.
+            {inventory.length > 0 
+              ? `SQLite currently tracks ${inventory.length} active ingredients in your cabinet.` 
+              : "Your pantry is empty. Scan a receipt to log purchased items into SQLite!"}
           </Text>
         </View>
       </Animated.View>
@@ -112,7 +112,7 @@ export default function PantryScreen() {
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search items..."
+          placeholder="Search items, categories, aliases..."
           placeholderTextColor="#64748b"
           style={styles.searchInput}
         />
@@ -151,85 +151,127 @@ export default function PantryScreen() {
       {/* Food Items List */}
       <FlatList
         data={filteredInventory}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Layers size={36} color="#64748b" />
-            <Text style={styles.emptyText}>No matching ingredients found.</Text>
+            <Text style={styles.emptyText}>
+              {isLoading ? "Loading inventory from SQLite..." : "No matching ingredients found."}
+            </Text>
           </View>
         }
         renderItem={({ item, index }) => {
-          const expiryColor = getExpiryColor(item.expiry_date);
-          const percentLeft = item.original_quantity > 0 
-            ? (item.current_stock / item.original_quantity) * 100 
-            : 0;
+          const itemName = getItemName(item);
+          const stock = getItemStock(item);
+          const expiryColor = getExpiryColor(item);
 
           return (
-            <Animated.View 
-              entering={FadeInRight.delay(index * 50)} 
-              style={styles.foodCard}
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={() => setSelectedItemForModal(item)}
             >
-              {/* Expiry Ring Icon Indicator */}
-              <View style={styles.ringContainer}>
-                <View style={[styles.ringOuter, { borderColor: expiryColor }]}>
-                  <Scale size={18} color={expiryColor} />
-                </View>
-              </View>
-
-              {/* Food Info */}
-              <View style={styles.cardInfo}>
-                <Text style={styles.foodName}>{item.name}</Text>
-                
-                <View style={styles.badgeRow}>
-                  <View style={styles.quantityBadge}>
-                    <Text style={styles.quantityText}>
-                      {item.current_stock.toFixed(0)} {item.unit}
-                    </Text>
-                  </View>
-                  <View style={styles.expiryBadge}>
-                    <Calendar size={10} color={expiryColor} />
-                    <Text style={[styles.expiryText, { color: expiryColor }]}>
-                      {getExpiryText(item.expiry_date)}
-                    </Text>
+              <Animated.View 
+                entering={FadeInRight.delay(index * 40)} 
+                style={styles.foodCard}
+              >
+                {/* Expiry Ring Icon Indicator */}
+                <View style={styles.ringContainer}>
+                  <View style={[styles.ringOuter, { borderColor: expiryColor }]}>
+                    <Scale size={18} color={expiryColor} />
                   </View>
                 </View>
 
-                <Text style={styles.priceLabel}>
-                  Avg Price: LKR {item.avg_price ? item.avg_price.toLocaleString() : '0'}
-                </Text>
-              </View>
-
-              {/* Quantity Adjusters */}
-              <View style={styles.adjusters}>
-                <TouchableOpacity 
-                  onPress={() => handleAdjustQuantity(item.id, -1)}
-                  style={styles.adjustBtn}
-                >
-                  <Minus size={14} color="#fff" />
-                </TouchableOpacity>
-                
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBarBg}>
-                    <View style={[
-                      styles.progressBarFill, 
-                      { width: `${Math.min(100, percentLeft)}%`, backgroundColor: expiryColor }
-                    ]} />
+                {/* Food Info */}
+                <View style={styles.cardInfo}>
+                  <Text style={styles.foodName}>{itemName}</Text>
+                  
+                  <View style={styles.badgeRow}>
+                    <View style={styles.quantityBadge}>
+                      <Text style={styles.quantityText}>
+                        {stock.toFixed(0)} {item.unit || 'pcs'}
+                      </Text>
+                    </View>
+                    <View style={[styles.expiryBadge, { backgroundColor: `${expiryColor}15`, borderColor: expiryColor, borderWidth: 1 }]}>
+                      <Calendar size={10} color={expiryColor} />
+                      <Text style={[styles.expiryText, { color: expiryColor, fontWeight: 'bold' }]}>
+                        {getExpiryText(item)}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.percentText}>{percentLeft.toFixed(0)}%</Text>
-                </View>
 
-                <TouchableOpacity 
-                  onPress={() => handleAdjustQuantity(item.id, 1)}
-                  style={styles.adjustBtn}
-                >
-                  <Plus size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
+                  <Text style={styles.priceLabel}>
+                    Avg Price: LKR {item.avg_price ? item.avg_price.toLocaleString() : '0'} • {getCategoryForItem(item)}
+                  </Text>
+                </View>
+              </Animated.View>
+            </TouchableOpacity>
           );
         }}
       />
+
+      {/* Item Details Modal */}
+      {selectedItemForModal && (
+        <Modal
+          visible={!!selectedItemForModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setSelectedItemForModal(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <Animated.View entering={SlideInDown} style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{getItemName(selectedItemForModal)}</Text>
+                <TouchableOpacity onPress={() => setSelectedItemForModal(null)} style={styles.modalCloseBtn}>
+                  <X size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalDetailGrid}>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Category:</Text>
+                  <Text style={styles.modalVal}>{getCategoryForItem(selectedItemForModal)}</Text>
+                </View>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Stock Level:</Text>
+                  <Text style={styles.modalVal}>{getItemStock(selectedItemForModal)} {selectedItemForModal.unit || 'pcs'}</Text>
+                </View>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Freshness Status:</Text>
+                  <Text style={[styles.modalVal, { color: getExpiryColor(selectedItemForModal), fontWeight: 'bold' }]}>
+                    {getExpiryText(selectedItemForModal)}
+                  </Text>
+                </View>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Purchase Date:</Text>
+                  <Text style={styles.modalVal}>{selectedItemForModal.purchase_date || 'Today'}</Text>
+                </View>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Estimated Expiry:</Text>
+                  <Text style={styles.modalVal}>{selectedItemForModal.estimated_expiry_date || 'N/A'}</Text>
+                </View>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Expected Shelf Life:</Text>
+                  <Text style={styles.modalVal}>
+                    {selectedItemForModal.shelf_life_days === -1 ? 'Non-Perishable' : `${selectedItemForModal.shelf_life_days || 7} days`}
+                  </Text>
+                </View>
+                <View style={styles.modalDetailRow}>
+                  <Text style={styles.modalLabel}>Average Price:</Text>
+                  <Text style={styles.modalVal}>LKR {selectedItemForModal.avg_price ? selectedItemForModal.avg_price.toLocaleString() : '0'}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={() => setSelectedItemForModal(null)} style={styles.modalDoneBtn}>
+                <Text style={styles.modalDoneBtnText}>Close Details</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
 
       {/* Floating Banking-Style Receipt Ingest FAB */}
       <TouchableOpacity 
@@ -276,39 +318,38 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   insightTitle: {
-    fontSize: 13,
+    color: '#6366f1',
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#fff',
     marginBottom: 2,
   },
   insightBody: {
-    fontSize: 11,
     color: '#94a3b8',
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 16,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0f172a',
-    borderWidth: 1,
     borderColor: '#1e293b',
+    borderWidth: 1,
     borderRadius: 16,
     marginHorizontal: 24,
     marginTop: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     height: 44,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
   },
   categoriesWrapper: {
-    marginTop: 14,
-    marginBottom: 8,
+    marginTop: 16,
   },
   categoriesContent: {
     paddingHorizontal: 24,
@@ -316,11 +357,11 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     backgroundColor: '#0f172a',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
     borderColor: '#1e293b',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   categoryChipActive: {
     backgroundColor: '#6366f1',
@@ -333,34 +374,36 @@ const styles = StyleSheet.create({
   },
   categoryTextActive: {
     color: '#fff',
+    fontWeight: 'bold',
   },
   listContent: {
     padding: 24,
     paddingBottom: 100,
-    gap: 16,
+    gap: 12,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
     gap: 12,
   },
   emptyText: {
     color: '#64748b',
     fontSize: 13,
-    fontWeight: '500',
   },
   foodCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0f172a',
-    borderWidth: 1,
     borderColor: '#1e293b',
-    borderRadius: 20,
-    padding: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    gap: 14,
   },
   ringContainer: {
-    marginRight: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ringOuter: {
     width: 44,
@@ -373,78 +416,110 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
+    gap: 4,
   },
   foodName: {
+    color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
+    gap: 8,
   },
   quantityBadge: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: '#1e293b',
     borderRadius: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
   },
   quantityText: {
-    color: '#818cf8',
-    fontSize: 10,
-    fontWeight: 'bold',
+    color: '#cbd5e1',
+    fontSize: 11,
+    fontWeight: '600',
   },
   expiryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    gap: 4,
     borderRadius: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
   },
   expiryText: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontSize: 11,
   },
   priceLabel: {
-    fontSize: 10,
     color: '#64748b',
+    fontSize: 11,
+    marginTop: 2,
   },
-  adjusters: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(9, 11, 20, 0.85)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#151b2e',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 20,
   },
-  adjustBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#1e293b',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressContainer: {
+  modalDetailGrid: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  modalDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
   },
-  progressBarBg: {
-    width: 36,
-    height: 4,
-    backgroundColor: '#1e293b',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  percentText: {
-    fontSize: 9,
+  modalLabel: {
     color: '#64748b',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modalVal: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modalDoneBtn: {
+    height: 48,
+    backgroundColor: '#6366f1',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDoneBtnText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
-    marginTop: 2,
   },
   fab: {
     position: 'absolute',
@@ -452,20 +527,20 @@ const styles = StyleSheet.create({
     right: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
     gap: 8,
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 30,
+    elevation: 8,
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 6,
   },
   fabText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

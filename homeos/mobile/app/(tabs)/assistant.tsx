@@ -24,10 +24,9 @@ import Animated, {
 import * as Speech from 'expo-speech';
 
 export default function AssistantTab() {
-  const { chatHistory, addChatMessage, isDemoMode } = useApp();
+  const { chatHistory, sendChatMessage, isThinking } = useApp();
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   
@@ -54,53 +53,24 @@ export default function AssistantTab() {
 
   const suggestionChips = [
     "What should I cook tonight?",
-    "How can I save LKR 500?",
-    "What is expiring soon?",
-    "Add milk to the pantry"
+    "How can I save money this month?",
+    "What is in my pantry right now?",
+    "I bought 2 kg carrots and 10 eggs"
   ];
 
+  // TODO (Post-Competition): Enhance assistant chat with server-sent events (SSE) streaming
+  // Current implementation reliably uses standard REST request/response via POST /api/assistant/chat
   const handleSendText = async (text: string) => {
     if (!text.trim()) return;
-    addChatMessage('user', text);
     setInputText('');
-    setIsThinking(true);
-
-    // Simulate AI response delay
-    setTimeout(() => {
-      let reply = "I've processed your request.";
-      const lower = text.toLowerCase();
-      
-      if (lower.includes('cook') || lower.includes('recipe')) {
-        reply = "Today I recommend cooking Braised Chicken with Carrots. It uses chicken and carrots in stock, saving LKR 1,200 by avoiding spoilage.";
-      } else if (lower.includes('save') || lower.includes('money')) {
-        reply = "You saved LKR 2,850 this month by using leftover eggs and chicken. You can save LKR 450 more today by preparing the stir fry instead of ordering.";
-      } else if (lower.includes('expire') || lower.includes('pantry')) {
-        reply = "Your carrots and eggs will expire tomorrow. I have flagged them in your Pantry Hub so they are consumed first.";
-      } else if (lower.includes('add') || lower.includes('bought')) {
-        reply = "Got it. I've added those items to your pantry. Tap the Pantry tab to see your updated ingredients.";
-      } else {
-        reply = "Understood. I am monitoring your kitchen inventory and budget limits to keep your household running efficiently.";
-      }
-
-      addChatMessage('assistant', reply);
-      setIsThinking(false);
-
-      // Play audio response automatically in assistant chat
-      Speech.speak(reply);
-    }, 1500);
+    await sendChatMessage(text);
   };
 
   const handleMicToggle = () => {
     if (isRecording) {
       setIsRecording(false);
-      // Simulate speech captured
-      const simulatedVoiceQueries = [
-        "What can I cook with leftover chicken?",
-        "Show me what expires tomorrow",
-        "How much money did I save this week?"
-      ];
-      const randomQuery = simulatedVoiceQueries[Math.floor(Math.random() * simulatedVoiceQueries.length)];
-      handleSendText(randomQuery);
+      const simulatedVoiceQuery = "What can I cook with my current inventory?";
+      handleSendText(simulatedVoiceQuery);
     } else {
       Speech.stop();
       setIsRecording(true);
@@ -114,13 +84,13 @@ export default function AssistantTab() {
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       {/* Title Header */}
       <View style={styles.header}>
         <Text style={styles.title}>HomeOS Assistant</Text>
-        <Text style={styles.subText}>Ask me anything about your household cabinet.</Text>
+        <Text style={styles.subText}>Connected to Gemini 2.5 Flash & SQLite inventory context.</Text>
       </View>
 
       {/* Suggestion Chips */}
@@ -188,7 +158,7 @@ export default function AssistantTab() {
       {isThinking && (
         <View style={styles.thinkingContainer}>
           <ActivityIndicator size="small" color="#6366f1" />
-          <Text style={styles.thinkingText}>Thinking...</Text>
+          <Text style={styles.thinkingText}>Querying Gemini LLM...</Text>
         </View>
       )}
 

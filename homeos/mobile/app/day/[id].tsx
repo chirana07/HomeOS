@@ -22,11 +22,11 @@ import {
   RotateCcw, 
   Send, 
   Sun, 
-  TrendingUp, 
   Volume2 
 } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Speech from 'expo-speech';
+import * as api from '../../services/api';
 
 export default function DayDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -71,32 +71,21 @@ export default function DayDetailScreen() {
     setLoadingAnswers(prev => ({ ...prev, [mealType]: true }));
     setChatAnswers(prev => ({ ...prev, [mealType]: '' }));
 
-    // Simulate AI cooking response delay
-    setTimeout(() => {
-      let reply = "Sure! ";
-      const lower = prompt.toLowerCase();
-      
-      if (lower.includes('replace') || lower.includes('swap') || lower.includes('substitute')) {
-        if (lower.includes('carrot')) {
-          reply += "Yes, you can substitute carrots with sweet potato or beans. It will slightly increase the cost estimate by LKR 80 but keeps the flavor profile consistent.";
-        } else if (lower.includes('chicken')) {
-          reply += "Yes, you can swap chicken with tofu or paneer. If you use tofu, the cost drops by LKR 300, and it uses less cooking oil.";
-        } else {
-          reply += "You can replace that item with similar vegetables or proteins already in stock. Check your Pantry tab to see available replacements.";
-        }
-      } else if (lower.includes('dairy') || lower.includes('vegan') || lower.includes('vegetarian')) {
-        reply += "To make this dish vegan, swap chicken for extra firm tofu and ensure you use cooking oil instead of butter. This keeps the recipe 100% dairy-free.";
-      } else {
-        reply += `To adapt ${dayMeals[mealType].meal_name} for this request, you can adjust the ingredient proportions. It will not conflict with your weekly budget limit of LKR 10,000.`;
-      }
+    try {
+      const mealName = dayMeals[mealType]?.meal_name || mealType;
+      const res = await api.chatWithAssistantText(`Regarding recipe "${mealName}": ${prompt}`);
+      const reply = res.response || res.transcript || "Request processed.";
 
       setChatAnswers(prev => ({ ...prev, [mealType]: reply }));
       setChatInputs(prev => ({ ...prev, [mealType]: '' }));
-      setLoadingAnswers(prev => ({ ...prev, [mealType]: false }));
       
       // Auto Voice readback
       Speech.speak(reply);
-    }, 1200);
+    } catch (err: any) {
+      setChatAnswers(prev => ({ ...prev, [mealType]: "Failed to query AI assistant." }));
+    } finally {
+      setLoadingAnswers(prev => ({ ...prev, [mealType]: false }));
+    }
   };
 
   const speakText = (text: string) => {
@@ -123,7 +112,7 @@ export default function DayDetailScreen() {
 
     return (
       <Animated.View entering={FadeInDown} style={styles.mealCard} key={type}>
-        {/* Card Cover Gradient Mock */}
+        {/* Card Cover */}
         <View style={[styles.cardHeaderCover, { backgroundColor: gradientBg }]}>
           <MealIcon size={32} color={iconColor} />
           <Text style={[styles.mealTypeTitle, { color: iconColor }]}>
@@ -136,7 +125,7 @@ export default function DayDetailScreen() {
           <View style={styles.mealNameRow}>
             <Text style={styles.mealName}>{mealData.meal_name}</Text>
             <View style={styles.healthTag}>
-              <Text style={styles.healthTagText}>{mealData.nutrition_score}/100 score</Text>
+              <Text style={styles.healthTagText}>{mealData.nutrition_score || 85}/100 score</Text>
             </View>
           </View>
 
@@ -146,7 +135,7 @@ export default function DayDetailScreen() {
           <View style={styles.aiInsightRow}>
             <Bot size={14} color="#6366f1" />
             <Text style={styles.aiInsightText}>
-              Why selected: minimizes carrot waste and uses in-stock ingredients.
+              Optimized for family budget & waste reduction.
             </Text>
           </View>
 
@@ -160,7 +149,7 @@ export default function DayDetailScreen() {
             ))}
           </View>
 
-          {/* Completing Slider Actions */}
+          {/* Completing Actions */}
           <View style={styles.completionRow}>
             <View>
               <Text style={styles.executionStatusLabel}>Execution State</Text>
@@ -262,7 +251,7 @@ export default function DayDetailScreen() {
         {/* Day Header Info */}
         <View style={styles.dayHeader}>
           <Text style={styles.dayTitle}>Day {dayId} Plan</Text>
-          <Text style={styles.daySub}>I've optimized your schedule to eliminate waste.</Text>
+          <Text style={styles.daySub}>Schedule optimized to eliminate waste and hit budget targets.</Text>
         </View>
 
         {/* Render Day Meals */}
