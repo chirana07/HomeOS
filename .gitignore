@@ -2,6 +2,9 @@
 *.md
 !README.md
 homeos.zip
+*.db
+*.sqlite
+
 
 
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
