@@ -44,13 +44,14 @@ def get_current_plan():
     if not plan:
         raise HTTPException(status_code=404, detail="No meal plan generated yet.")
         
-    # Dynamically inject completion status for Dashboard
+    # Dynamically inject completion status and validate shopping list
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Inject completion statuses
         cursor.execute("SELECT day, meal_type FROM MealExecution")
         completed_rows = cursor.fetchall()
-        conn.close()
         
         # map (day, meal_type) -> True
         completed_set = {(r["day"], r["meal_type"].lower()) for r in completed_rows}
@@ -65,8 +66,37 @@ def get_current_plan():
                                 plan["daily_plan"][day_key][m_type]["status"] = "Completed"
                             else:
                                 plan["daily_plan"][day_key][m_type]["status"] = "Pending"
+                                
+        # Dynamically validate and update shopping list priorities
+        if "shopping_list" in plan:
+            valid_shopping_list = []
+            for item in plan["shopping_list"]:
+                cursor.execute("SELECT quantity, original_quantity FROM Inventory WHERE LOWER(ingredient) = ?", (item["item"].lower(),))
+                row = cursor.fetchone()
+                if row:
+                    current_qty = float(row["quantity"])
+                    try:
+                        original_qty = float(row["original_quantity"]) if row["original_quantity"] is not None else current_qty
+                    except (ValueError, TypeError):
+                        original_qty = current_qty
+                        
+                    threshold = original_qty
+                    if current_qty < threshold:
+                        if current_qty <= 0.0:
+                            item["priority"] = "high"
+                        elif current_qty <= original_qty * 0.5:
+                            item["priority"] = "medium"
+                        else:
+                            item["priority"] = "low"
+                        valid_shopping_list.append(item)
+                else:
+                    item["priority"] = "high"
+                    valid_shopping_list.append(item)
+            plan["shopping_list"] = valid_shopping_list
+
+        conn.close()
     except Exception as e:
-        print(f"Error injecting statuses: {e}")
+        print(f"Error injecting statuses or validating shopping list: {e}")
         
     return plan
 
@@ -303,9 +333,9 @@ def complete_meal(req: CompleteMealRequest):
             new_qty = max(0.0, current_qty - deduction)
             cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
             
-            # Add to shopping list if it drops to 20% or less of original capacity
-            threshold = original_qty * 0.2
-            if new_qty <= threshold and current_qty > threshold:
+            # Add to shopping list if any amount is depleted from original capacity
+            threshold = original_qty
+            if new_qty < threshold and current_qty >= threshold:
                 price_info = market_prices.get(db_ing, {"price": 100.0, "qty": f"1 {unit}"})
                 cost = price_info["price"]
                 market_unit = price_info["qty"]
@@ -313,7 +343,7 @@ def complete_meal(req: CompleteMealRequest):
                     "item": db_ing.capitalize(),
                     "qty": market_unit, 
                     "cost": int(cost),
-                    "priority": "high" if new_qty == 0.0 else "medium"
+                    "priority": "high" if new_qty <= 0.0 else ("medium" if new_qty <= original_qty * 0.5 else "low")
                 })
             
             consumed_list.append(db_ing.capitalize())
@@ -437,16 +467,27 @@ def undo_meal(req: CompleteMealRequest):
     family_size = plan.get("household_economics", {}).get("family_size", 4)
     
     # 3. Restore inventory quantities
+    restored_items = []
     try:
         for ing_name, base_qty in ingredients_json.items():
             db_ing = normalize_ingredient_name(ing_name)
             addition = base_qty * family_size if portion_per_person else base_qty
             
-            cursor.execute("SELECT quantity FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
+            cursor.execute("SELECT quantity, original_quantity FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
             row = cursor.fetchone()
             if row:
-                new_qty = float(row["quantity"]) + addition
+                current_qty = float(row["quantity"])
+                try:
+                    original_qty = float(row["original_quantity"]) if row["original_quantity"] is not None else current_qty
+                except (ValueError, TypeError, KeyError):
+                    original_qty = current_qty
+
+                new_qty = current_qty + addition
                 cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
+                
+                threshold = original_qty * 0.2
+                if new_qty > threshold and current_qty <= threshold:
+                    restored_items.append(db_ing.lower())
                 
         # 4. Delete the MealExecution record
         cursor.execute("DELETE FROM MealExecution WHERE day = ? AND meal_type = ?", (req.day, m_type))
@@ -467,6 +508,13 @@ def undo_meal(req: CompleteMealRequest):
         original_trace = plan["agent_reasoning"]["agent_trace"]
         # Filter out the matching trace log (keep all others)
         plan["agent_reasoning"]["agent_trace"] = [t for t in original_trace if t.get("input") != trace_input_match]
+        
+    # 6. Remove restored items from shopping list
+    if restored_items and "shopping_list" in plan:
+        plan["shopping_list"] = [
+            item for item in plan["shopping_list"] 
+            if item.get("item", "").lower() not in restored_items
+        ]
         
     # Save plan back to disk
     plan_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'meal_plan.json')

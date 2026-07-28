@@ -26,3 +26,4 @@ dist/
 
 # Expo
 mobile/.expo/
+venv

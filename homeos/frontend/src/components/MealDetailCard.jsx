@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Coffee, Sun, Moon, Sparkles, CheckCircle2, ShoppingBag, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { completeMeal, undoMeal } from '../services/api';
+import { useApp } from '../context/AppContext';
 
 export default function MealDetailCard({ type, meal, dayId, onComplete }) {
+  const { completeMeal } = useApp();
   const isBreakfast = type === 'breakfast';
   const isLunch = type === 'lunch';
   const [isCompleting, setIsCompleting] = useState(false);
@@ -18,10 +19,14 @@ export default function MealDetailCard({ type, meal, dayId, onComplete }) {
   const handleComplete = async () => {
     setIsCompleting(true);
     try {
-      await completeMeal(dayId, type);
-      toast.success(`${meal.meal_name} completed!`);
-      if (onComplete) {
-        onComplete();
+      const success = await completeMeal(dayId, type, false);
+      if (success) {
+        toast.success(`${meal.meal_name} completed!`);
+        if (onComplete) {
+          onComplete();
+        }
+      } else {
+        toast.error('Failed to complete meal.');
       }
     } catch (err) {
       toast.error(err.message || 'Failed to complete meal.');
@@ -33,10 +38,14 @@ export default function MealDetailCard({ type, meal, dayId, onComplete }) {
   const handleUndo = async () => {
     setIsCompleting(true);
     try {
-      await undoMeal(dayId, type);
-      toast.success(`${meal.meal_name} restored!`);
-      if (onComplete) {
-        onComplete();
+      const success = await completeMeal(dayId, type, true);
+      if (success) {
+        toast.success(`${meal.meal_name} restored!`);
+        if (onComplete) {
+          onComplete();
+        }
+      } else {
+        toast.error('Failed to undo meal.');
       }
     } catch (err) {
       toast.error(err.message || 'Failed to undo meal.');
