@@ -116,6 +116,55 @@ def init_qdrant() -> int:
         print(f"Error initializing Qdrant collection: {e}")
     return 0
 
+def upsert_single_recipe_into_qdrant(recipe_data: dict) -> int:
+    """
+    Generates embedding for a new user-created recipe using gemini-embedding-2 
+    and live-upserts it into Qdrant in real time (zero backend restarts required).
+    """
+    try:
+        collections = client.get_collections().collections
+        exists = any(c.name == COLLECTION_NAME for c in collections)
+        if not exists:
+            client.create_collection(
+                collection_name=COLLECTION_NAME,
+                vectors_config=VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE),
+            )
+
+        current_count = client.count(collection_name=COLLECTION_NAME).count
+        point_id = recipe_data.get("id") or (current_count + 1000)
+
+        name = recipe_data.get("recipe_name", "")
+        ingredients = recipe_data.get("ingredients", [])
+        meal_type = recipe_data.get("meal_type", "")
+        summary = recipe_data.get("recipe_summary", "")
+        tags = recipe_data.get("tags", [])
+        cuisine = recipe_data.get("cuisine", "")
+        nut_score = int(recipe_data.get("nutrition_score", 80))
+
+        text_content = f"Recipe: {name}. Cuisine: {cuisine}. Ingredients: {', '.join(ingredients)}. Meal Type: {meal_type}. Summary: {summary}. Tags: {', '.join(tags)}."
+        vector = get_embedding(text_content)
+
+        payload = {
+            "recipe_name": name,
+            "ingredients": ingredients,
+            "meal_type": meal_type,
+            "nutrition_score": nut_score,
+            "recipe_summary": summary,
+            "tags": tags,
+            "cuisine": cuisine,
+            "ingredients_json": recipe_data.get("ingredients_json", {}),
+            "portion_per_person": recipe_data.get("portion_per_person", True),
+            "user_created": True
+        }
+
+        point = PointStruct(id=point_id, vector=vector, payload=payload)
+        client.upsert(collection_name=COLLECTION_NAME, points=[point])
+        print(f"✅ Live Qdrant upsert succeeded for recipe '{name}' (Point ID: {point_id})")
+        return point_id
+    except Exception as e:
+        print(f"Warning: Qdrant real-time upsert failed for recipe ({e})")
+        return -1
+
 def search_recipes_vector(query: str, limit: int = 20):
     """
     Performs cosine similarity search using Gemini embeddings.
