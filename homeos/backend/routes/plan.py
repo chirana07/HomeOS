@@ -44,7 +44,7 @@ def get_persisted_plan():
 @router.get("/")
 def get_current_plan():
     """
-    Returns the currently persisted meal plan, including dynamically updated shopping lists and intelligence.
+    Inject household shopping intelligence, completion status, and validate shopping priorities.
     """
     plan = get_persisted_plan()
     if not plan:
@@ -77,7 +77,7 @@ def get_current_plan():
                             else:
                                 plan["daily_plan"][day_key][m_type]["status"] = "Pending"
     except Exception as e:
-        print(f"Error injecting statuses or shopping intelligence: {e}")
+        print(f"Error updating meal plan metadata: {e}")
         
     return plan
 
