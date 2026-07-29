@@ -468,6 +468,18 @@
         "input": "Budget: LKR 10000.0 | Estimated Cost: LKR 0.0",
         "decision": "{\"status\": \"PASS\", \"score\": 90, \"reason\": \"Fallback PASS status issued due to Gemini API client lookup error.\"}",
         "output": "Status: PASS | Score: 90 | Reason: Fallback PASS status issued due to Gemini API client lookup error."
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 1 Breakfast (Braised Chicken with Carrots)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Chicken, Carrots, Soy sauce, Onions, Garlic, Cooking oil | Deducted: 600 g, 400 g, 24 ml, 120 g, 12 g, 20 ml | Remaining: Chicken: 1400.0 g, Carrots: 600.0 g, Soy sauce: 476.0 ml, Onions: 380.0 g, Garlic: 88.0 g, Cooking oil: 980.0 ml"
+      },
+      {
+        "agent": "Inventory Update Agent",
+        "input": "Meal Completed: Day 1 Lunch (Vegetable Rice)",
+        "decision": "Deducted recipe ingredients scaled for family size 4 (portion_per_person: True).",
+        "output": "Consumed: Rice, Carrots, Eggs | Deducted: 600 g, 200 g, 8 pcs | Remaining: Rice: 4400.0 g, Carrots: 800.0 g, Eggs: 16.0 pcs"
       }
     ]
   }

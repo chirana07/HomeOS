@@ -1,11 +1,41 @@
-item,unit,price
-Chicken,500g,850
-Eggs,12 pcs,480
-Onions,500g,180
-Beans,250g,220
-Tomatoes,500g,200
-Garlic,100g,80
-Cooking Oil,500ml,170
-Rice,1kg,400
-Carrots,250g,150
-Soy Sauce,250ml,250
+ingredient,price_per_unit,unit
+rice,240.0,kg
+red rice,260.0,kg
+flour,220.0,kg
+noodles,380.0,pack
+chicken,1450.0,kg
+eggs,42.0,pcs
+fish,1800.0,kg
+lentils,340.0,kg
+chickpeas,520.0,kg
+milk,480.0,l
+cheese,1150.0,pack
+butter,850.0,pack
+yogurt,120.0,cup
+onions,320.0,kg
+tomatoes,380.0,kg
+potatoes,280.0,kg
+carrots,340.0,kg
+beans,360.0,kg
+cabbage,220.0,kg
+spinach,180.0,bunch
+garlic,680.0,kg
+ginger,850.0,kg
+banana,220.0,kg
+apple,150.0,pcs
+orange,180.0,pcs
+papaya,200.0,kg
+sugar,280.0,kg
+salt,120.0,pack
+tea,450.0,pack
+coffee,650.0,pack
+coconut milk,220.0,pack
+cooking oil,950.0,l
+pepper,480.0,pack
+curry powder,260.0,pack
+chili powder,310.0,pack
+cinnamon,350.0,pack
+soy sauce,420.0,bottle
+frozen peas,650.0,pack
+frozen chicken nuggets,1250.0,pack
+biscuits,180.0,pack
