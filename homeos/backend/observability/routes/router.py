@@ -1,5 +1,6 @@
 import io
-from fastapi import APIRouter, Optional
+from typing import Optional
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse, Response
 from observability.database.repository import ObservabilityRepository
 from observability.report_generator import report_generator
