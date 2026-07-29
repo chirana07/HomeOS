@@ -12,44 +12,19 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { useApp } from '../../context/AppContext';
-import { Bot, Mic, Send, Square, Volume2 } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withTiming, 
-  withSequence,
-  FadeIn
-} from 'react-native-reanimated';
+import { Bot, Mic, Send, Volume2 } from 'lucide-react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import * as Speech from 'expo-speech';
+import { useVoiceAssistant } from '../../hooks/useVoiceAssistant';
+import { VoiceAssistantModal } from '../../components/VoiceAssistantModal';
 
 export default function AssistantTab() {
   const { chatHistory, sendChatMessage, isThinking } = useApp();
   const [inputText, setInputText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+
+  const voice = useVoiceAssistant();
   const flatListRef = useRef<FlatList>(null);
-  
-  // Waveform animations
-  const pulse1 = useSharedValue(1);
-  const pulse2 = useSharedValue(1);
-  const pulse3 = useSharedValue(1);
-
-  useEffect(() => {
-    if (isRecording) {
-      pulse1.value = withRepeat(withSequence(withTiming(1.6, { duration: 400 }), withTiming(1, { duration: 400 })), -1, true);
-      pulse2.value = withRepeat(withSequence(withTiming(2.0, { duration: 500 }), withTiming(1, { duration: 500 })), -1, true);
-      pulse3.value = withRepeat(withSequence(withTiming(1.4, { duration: 300 }), withTiming(1, { duration: 300 })), -1, true);
-    } else {
-      pulse1.value = withTiming(1);
-      pulse2.value = withTiming(1);
-      pulse3.value = withTiming(1);
-    }
-  }, [isRecording]);
-
-  const animatedStyle1 = useAnimatedStyle(() => ({ transform: [{ scaleY: pulse1.value }] }));
-  const animatedStyle2 = useAnimatedStyle(() => ({ transform: [{ scaleY: pulse2.value }] }));
-  const animatedStyle3 = useAnimatedStyle(() => ({ transform: [{ scaleY: pulse3.value }] }));
 
   const suggestionChips = [
     "What should I cook tonight?",
@@ -58,8 +33,6 @@ export default function AssistantTab() {
     "I bought 2 kg carrots and 10 eggs"
   ];
 
-  // TODO (Post-Competition): Enhance assistant chat with server-sent events (SSE) streaming
-  // Current implementation reliably uses standard REST request/response via POST /api/assistant/chat
   const handleSendText = async (text: string) => {
     if (!text.trim()) return;
     setInputText('');
@@ -67,14 +40,8 @@ export default function AssistantTab() {
   };
 
   const handleMicToggle = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      const simulatedVoiceQuery = "What can I cook with my current inventory?";
-      handleSendText(simulatedVoiceQuery);
-    } else {
-      Speech.stop();
-      setIsRecording(true);
-    }
+    setIsVoiceModalOpen(true);
+    voice.startListening();
   };
 
   const handleSpeak = (text: string) => {
@@ -89,7 +56,17 @@ export default function AssistantTab() {
     >
       {/* Title Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>HomeOS Assistant</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.title}>HomeOS Assistant</Text>
+          <TouchableOpacity 
+            onPress={handleMicToggle} 
+            style={styles.voiceHeaderBtn}
+            activeOpacity={0.8}
+          >
+            <Mic size={16} color="#fff" />
+            <Text style={styles.voiceHeaderBtnText}>Voice Mode</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.subText}>Connected to Gemini 2.5 Flash & SQLite inventory context.</Text>
       </View>
 
@@ -162,34 +139,14 @@ export default function AssistantTab() {
         </View>
       )}
 
-      {/* Bottom Audio Recording View */}
-      {isRecording && (
-        <Animated.View entering={FadeIn} style={styles.recordingOverlay}>
-          <Text style={styles.recordingText}>Listening...</Text>
-          <View style={styles.waveformContainer}>
-            <Animated.View style={[styles.waveBar, animatedStyle1]} />
-            <Animated.View style={[styles.waveBar, animatedStyle2]} />
-            <Animated.View style={[styles.waveBar, animatedStyle3]} />
-            <Animated.View style={[styles.waveBar, animatedStyle2]} />
-            <Animated.View style={[styles.waveBar, animatedStyle1]} />
-          </View>
-        </Animated.View>
-      )}
-
       {/* Chat Input Row */}
       <View style={styles.inputRow}>
         <TouchableOpacity 
           onPress={handleMicToggle}
-          style={[
-            styles.micBtn,
-            isRecording && styles.micBtnActive
-          ]}
+          style={styles.micBtn}
+          activeOpacity={0.8}
         >
-          {isRecording ? (
-            <Square size={20} color="#fff" fill="#fff" />
-          ) : (
-            <Mic size={20} color="#6366f1" />
-          )}
+          <Mic size={20} color="#6366f1" />
         </TouchableOpacity>
         
         <TextInput
@@ -208,6 +165,27 @@ export default function AssistantTab() {
           <Send size={18} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Voice Assistant Overlay Modal */}
+      <VoiceAssistantModal
+        visible={isVoiceModalOpen}
+        onClose={() => {
+          voice.cancelRecording();
+          setIsVoiceModalOpen(false);
+        }}
+        status={voice.status}
+        transcript={voice.transcript}
+        errorMsg={voice.errorMsg}
+        isMuted={voice.isMuted}
+        permissionGranted={voice.permissionGranted}
+        conversationHistory={voice.conversationHistory}
+        startListening={voice.startListening}
+        stopListeningAndProcess={voice.stopListeningAndProcess}
+        cancelRecording={voice.cancelRecording}
+        replayLastResponse={voice.replayLastResponse}
+        toggleMute={voice.toggleMute}
+        requestMicrophonePermission={voice.requestMicrophonePermission}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -222,6 +200,25 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#0f172a',
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  voiceHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  voiceHeaderBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 20,

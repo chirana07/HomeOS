@@ -191,6 +191,37 @@ export async function getPlanInventory() {
   return response.json();
 }
 
+export async function getRecipes() {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/recipes/`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch recipes.');
+  }
+  return response.json();
+}
+
+export async function createRecipe(payload: any) {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/recipes/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let errMsg = 'Failed to create recipe.';
+    try {
+      const err = await response.json();
+      errMsg = err.detail || errMsg;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errMsg);
+  }
+
+  return response.json();
+}
+
 export async function chatWithAssistantVoice(formData: FormData) {
   const response = await fetchWithTimeout(`${BASE_URL}/api/assistant/voice`, {
     method: 'POST',

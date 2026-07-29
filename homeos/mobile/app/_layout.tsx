@@ -58,6 +58,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="scanner" options={{ presentation: 'modal' }} />
           <Stack.Screen name="day/[id]" options={{ presentation: 'card', animation: 'slide_from_right' }} />
+          <Stack.Screen name="shopping-list" options={{ presentation: 'card', animation: 'slide_from_right' }} />
         </Stack>
         <JudgePanel />
       </View>
