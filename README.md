@@ -1,216 +1,368 @@
-# HomeOS
+# HomeOS: Autonomous Household Inventory & Economic Intelligence System
 
-**Household Inventory and Meal Planning System**
-
-HomeOS is a hybrid multi-agent application designed to help households reduce food waste, optimize grocery spending, automate meal planning, and maintain accurate pantry inventories. Built with a focus on reliability and explainability, it combines deterministic data processing with targeted generative AI to deliver practical, everyday value.
+HomeOS is an autonomous household inventory management, meal planning, and financial optimization platform. It combines deterministic data processing (inventory tracking, multi-factor replenishment scoring, recipe scaling, SQLite state synchronization) with generative AI (LangGraph multi-agent planning, Gemini 2.5 Flash, Qdrant vector retrieval RAG, RapidOCR receipt extraction) and an observability suite.
 
 ---
 
-## 📌 Problem Statement
+## Problem Statement
 
-Modern household management faces several recurring inefficiencies:
-- **Food Waste**: Over 30% of purchased food is discarded due to poor planning and forgotten expiry dates.
-- **Budget Overruns**: Families exceed financial targets by purchasing duplicate items or ignoring active pantry inventory.
-- **Manual Overhead**: Tracking food consumption, scaling recipes, and manually logging grocery receipts is tedious and error-prone.
-- **Fragmented Tools**: Existing solutions are either passive inventory trackers, uncontextualized recipe generators, or retroactive budget logs.
-
----
-
-## 📌 Core Objectives
-
-- **Minimize Spoilage**: Prioritize near-expiry items in meal planning.
-- **Budget Control**: Validate cost estimates against user-defined limits before finalizing plans.
-- **Explainability**: Provide clear, step-by-step visual tracking of system decisions.
-- **Frictionless Input**: Automate inventory restocking via unstructured receipt text parsing.
+Household management suffers from systemic economic and operational inefficiencies:
+- **Food Waste**: Financial loss from unmonitored expiration dates and misaligned meal schedules.
+- **Budget Disconnect**: Grocery purchasing disconnected from active pantry stock, leading to over-purchasing.
+- **Manual Overhead**: Friction in manual stock updates, ingredient unit conversions, and receipt logging.
+- **Opacity in Automated Planning**: Lack of explainability, cost metrics, and quality validation in AI recommendations.
 
 ---
 
-## 📌 Key Features
+## Core Objectives
 
-### 1. Multi-Agent Meal Planning
-Generates structured 3-day meal schedules (Breakfast, Lunch, Dinner) based on available inventory, family size, budget constraints, and historical meal preferences.
-
-### 2. Semantic Recipe Retrieval (RAG)
-Uses vector embeddings to search a local recipe database, ensuring the AI only suggests meals that can be made with current or easily acquirable ingredients, preventing hallucinations.
-
-### 3. Dynamic Inventory Management
-Automatically deducts ingredients when a meal is marked as complete, scaling quantities based on family size. Prevents duplicate deductions via database-level unique constraints.
-
-### 4. Receipt Ingestion & Parsing
-Accepts raw text from scanned receipts. The system extracts items, cleans quantity formats (e.g., `"5kg"` → `5.0`), converts units where necessary, and updates the pantry inventory.
-
-### 5. Self-Correction & Reflection Loop
-A dedicated validation step checks generated plans against budget limits and perishable timing rules. If a plan fails validation, the system automatically triggers a replanning loop (capped at 1 retry for performance).
-
-### 6. Explainable Execution Traces
-Every step of the planning process is logged, allowing users to view exactly how the system arrived at its recommendations (inputs, decisions, and outputs per agent).
+- **Spoilage Reduction**: Prioritize near-expiry inventory in meal selection algorithms.
+- **Budget Control**: Enforce pre-commit cost limits against market prices before plan finalization.
+- **System Observability**: Telemetry tracking, cost estimation per workflow step, and LLM-as-a-Judge evaluations.
+- **Frictionless Inventory Ingestion**: Automated receipt parsing using OCR with structured JSON extraction.
 
 ---
 
-## 📌 System Architecture
+## Key Features
 
-HomeOS uses a hybrid client-server architecture, balancing deterministic speed with advanced reasoning.
+### 1. Multi-Agent Meal Planning (LangGraph)
+An 8-node state machine orchestrating data retrieval, spoilage analysis, vector recipe matching, budget calculations, reflection loops, and output compilation:
+- **Coordinator Agent**: Fetches historical meal patterns to prevent repetitive meal planning.
+- **Inventory Agent**: Audits active stock levels from SQLite.
+- **Waste Agent**: Identifies near-expiry ingredients based on target dates.
+- **Recipe Agent**: Queries Qdrant vector database for semantically matched recipes.
+- **Meal Planner Agent**: Synthesizes 3-day meal plans matching family size and dietary requirements.
+- **Budget Agent**: Calculates replenishment costs using current market price tables.
+- **Reflection Agent**: Evaluates plan compliance against budget boundaries and perishable usage.
+- **Reporting Agent**: Compiles final execution reports and updates stored plan metrics.
 
-```mermaid
-graph TD
-    subgraph Client [Frontend Layer]
-        UI[React Dashboard]
-        API[API Client]
-    end
+### 2. Semantic Recipe Search & RAG (Qdrant)
+- Uses local Qdrant vector database storing 768-dimensional embeddings generated via `gemini-embedding-2`.
+- Real-time indexing for user-created recipes with instant vector persistence.
+- RAG pipeline prevents hallucinated ingredient quantities by constraining planning candidates to verified recipes.
 
-    subgraph Backend [Backend Layer]
-        Router[FastAPI Routers]
-        LG[LangGraph StateGraph]
-    end
+### 3. Household Shopping Intelligence Engine
+- Multi-factor priority scoring algorithm evaluating:
+  - Depletion percentage relative to original capacities.
+  - High-turnover Sri Lankan household staple weights (rice, oil, spices, eggs, milk).
+  - Expiration urgency windows.
+  - Replenishment cost calculation based on market unit prices (`prices.csv`).
+- Generates categorized priority lists (`Critical`, `Essential`, `Low`) and total estimated replenishment budgets.
 
-    subgraph DB [Storage Layer]
-        SQLite[(SQLite)]
-        Qdrant[(Qdrant)]
-    end
+### 4. Two-Stage Receipt Parsing (RapidOCR + Gemini)
+- Extracts text from scanned receipt images using RapidOCR.
+- Falls back to Gemini vision processing when OCR confidence falls below operational thresholds.
+- Normalizes unit measurements (e.g., `500g` -> `0.5 kg`, `1L` -> `1000 ml`).
+- Web and mobile two-stage confirmation modal for line-item verification before committing to SQLite.
 
-    subgraph AI [AI Services]
-        Gemini[Gemini 2.5 Flash]
-        Embed[Gemini Embedding]
-        Groq[Groq Llama-3.1]
-    end
+### 5. Mobile Companion & Voice Assistant
+- React Native / Expo cross-platform mobile application.
+- Voice assistant module (`useVoiceAssistant` hook, modal, and floating control) supporting voice-driven inventory queries, meal completions, and pantry updates.
+- Interactive recipe library displaying AI-learned recipe shelves alongside pre-seeded system recipes.
 
-    UI --> API
-    API -->|REST Requests| Router
-    Router --> LG
-    LG -->|Deterministic Queries| SQLite
-    LG -->|Vector Search| Qdrant
-    LG -->|Reasoning & Planning| Gemini
-    LG -->|Embeddings| Embed
-    Router -->|Receipt Parsing| Groq
+### 6. AI Observability & Telemetry Suite
+- Native integration with LangSmith for distributed trace generation.
+- Local execution metrics repository tracking latency, retry iterations, and token consumption.
+- Cost engine calculating model execution costs.
+- Automated LLM-as-a-Judge evaluation evaluating plan feasibility and budget adherence.
+- REST endpoints and ReportLab PDF exporter (`/api/v1/observability/cost-report-pdf`).
+
+---
+
+## System Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                             Client Layer                               │
+│  ┌───────────────────────────┐          ┌───────────────────────────┐  │
+│  │   React / Vite Web App    │          │  React Native / Expo App  │  │
+│  └─────────────┬─────────────┘          └─────────────┬─────────────┘  │
+└────────────────┼──────────────────────────────────────┼────────────────┘
+                 │                                      │
+                 └──────────────────┬───────────────────┘
+                                    │ HTTP / REST
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Backend Layer                               │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                    FastAPI Web Application                       │  │
+│  │  (/api/plan, /api/receipts, /api/recipes, /api/observability)    │  │
+│  └────────────────────────────────┬─────────────────────────────────┘  │
+│                                   │                                    │
+│        ┌──────────────────────────┴──────────────────────────┐         │
+│        ▼                                                     ▼         │
+│  ┌───────────────────────────┐             ┌────────────────────────┐  │
+│  │  LangGraph StateGraph     │             │  RapidOCR / OCR Engine │  │
+│  │  (8-Node Agent Workflow)  │             └────────────────────────┘  │
+│  └─────────────┬─────────────┘                                         │
+└────────────────┼───────────────────────────────────────────────────────┘
+                 │
+        ┌────────┴──────────────────────────┬──────────────────────────┐
+        ▼                                   ▼                          ▼
+┌───────────────┐                   ┌───────────────┐          ┌───────────────┐
+│ SQLite DB     │                   │ Qdrant Vector │          │ Google Gemini │
+│ (homeos.db)   │                   │ (In-Memory)   │          │ (Flash 2.5)   │
+└───────────────┘                   └───────────────┘          └───────────────┘
 ```
 
 ---
 
-## 📌 Agent Workflow
+## Technology Stack
 
-The core logic is orchestrated via a LangGraph state machine, ensuring structured, predictable execution:
-
-1. **Coordinator**: Fetches recent meal history to prevent repetitive scheduling.
-2. **Inventory**: Identifies current stock levels and flags near-expiry items.
-3. **Waste Analysis**: Calculates spoilage risk based on historical data and expiry dates.
-4. **Recipe Retrieval**: Queries Qdrant for semantically relevant recipes, prioritizing urgent ingredients.
-5. **Meal Planner**: Invokes the LLM to assemble a 3-day schedule from the candidate recipes.
-6. **Budget**: Maps plan ingredients to a pricing database to calculate estimated costs and generate shopping lists.
-7. **Reflection**: Validates the plan against budget and waste constraints. Returns `PASS` or `FAIL`.
-8. **Reporting**: Formats the final output and saves the execution trace and plan to disk.
-
----
-
-## 📌 Technology Stack
-
-| Category | Technologies |
+| Component | Technologies Used |
 | :--- | :--- |
-| **Frontend** | React (v18), Vite, TailwindCSS, Lucide React |
-| **Backend** | Python (v3.12), FastAPI, Uvicorn, LangGraph |
-| **AI / ML** | Google Gemini 2.5 Flash, Gemini Embeddings, Groq (Llama-3.1) |
-| **Databases** | SQLite (Relational), Qdrant (In-Memory Vector) |
+| **Backend Framework** | Python 3.12, FastAPI, Uvicorn, Pydantic |
+| **Agent Orchestration** | LangGraph, LangChain Core |
+| **Primary AI Models** | Google Gemini 2.5 Flash (`gemini-2.5-flash`), Gemini Embeddings (`gemini-embedding-2`) |
+| **OCR & Computer Vision** | RapidOCR (`rapidocr_onnxruntime`), OpenCV, Pillow |
+| **Databases** | SQLite (Relational), Qdrant (Vector DB) |
+| **Observability** | LangSmith Client, ReportLab (PDF Generation), Custom Telemetry Engine |
+| **Web Frontend** | React 18, Vite, Vanilla CSS |
+| **Mobile Frontend** | React Native, Expo (v52), TypeScript, Lucide React Native |
 
 ---
 
-## 📌 API Endpoints
+## Repository Structure
 
-### Meal Planning
-- `POST /api/plan/generate` – Resets execution records and triggers the LangGraph planning workflow.
-- `POST /api/plan/complete-meal` – Deducts ingredients for a completed meal and logs the execution.
-- `GET /api/plan/trace` – Retrieves the step-by-step agent execution log.
-
-### Inventory & Receipts
-- `GET /api/inventory` – Retrieves current structured pantry metrics.
-- `POST /api/receipts` – Parses raw receipt text, extracts items, and updates inventory.
-- `GET /api/receipts/inventory` – Returns a flat list of inventory items with calculated average unit prices.
+```text
+AGENTRIX26-TEAM39-Neural-Surge/
+├── README.md
+└── homeos/
+    ├── backend/
+    │   ├── app.py                      # FastAPI application entry point & route registration
+    │   ├── logger.py                   # Centralized application logging module
+    │   ├── llm.py                      # Gemini API wrapper with JSON mode handling
+    │   ├── requirements.txt            # Python dependencies
+    │   ├── verify_ai.py                # System diagnostic & readiness script
+    │   ├── agents/                     # LangGraph individual agent nodes
+    │   │   ├── coordinator.py
+    │   │   ├── inventory_agent.py
+    │   │   ├── waste_agent.py
+    │   │   ├── recipe_agent.py
+    │   │   ├── meal_planner_agent.py
+    │   │   ├── budget_agent.py
+    │   │   ├── reflection_agent.py
+    │   │   └── reporting_agent.py
+    │   ├── data/                       # Authoritative database and dataset files
+    │   │   ├── homeos.db               # SQLite database (Inventory, Receipts, MealExecution)
+    │   │   ├── meal_plan.json          # Active meal plan state
+    │   │   ├── recipes.csv             # Structured recipe dataset
+    │   │   ├── prices.csv              # Market price reference database
+    │   │   └── recipes_with_embeddings.json
+    │   ├── graph/                      # LangGraph state definition & compiled workflow
+    │   │   ├── state.py
+    │   │   └── workflow.py
+    │   ├── observability/              # Telemetry, cost engine, evaluation, and reporting
+    │   │   ├── config.py
+    │   │   ├── cost_engine.py
+    │   │   ├── evaluator.py
+    │   │   ├── langsmith_tracer.py
+    │   │   ├── report_generator.py
+    │   │   ├── database/               # Observability SQLite repository & models
+    │   │   ├── dashboard/              # Streamlit observability dashboard definition
+    │   │   └── routes/                 # Observability REST router
+    │   ├── routes/                     # Primary API feature routers
+    │   │   ├── assistant.py
+    │   │   ├── plan.py
+    │   │   ├── receipts.py
+    │   │   └── recipes.py
+    │   ├── tools/                      # Database connectors, inventory tool, OCR engine
+    │   │   ├── db.py
+    │   │   ├── inventory_tool.py
+    │   │   ├── ocr_engine.py
+    │   │   └── receipt_parser.py
+    │   └── vector_db/                  # Qdrant client & vector indexing setup
+    │       └── qdrant.py
+    ├── frontend/                       # React Web Application
+    │   ├── package.json
+    │   ├── vite.config.js
+    │   └── src/
+    │       ├── App.jsx
+    │       ├── components/             # Sidebar, ReceiptReviewModal, AddRecipeModal, etc.
+    │       ├── context/                # AppContext global state provider
+    │       ├── pages/                  # Dashboard, Pantry, Recipes, Receipts, AssistantPage
+    │       └── services/               # Axios API client
+    └── mobile/                         # React Native / Expo Application
+        ├── app.json
+        ├── package.json
+        ├── tsconfig.json
+        ├── app/                        # Expo Router pages ((tabs), day/[id], scanner, shopping-list)
+        ├── components/                 # VoiceAssistantModal, VoiceFloatingButton, JudgePanel
+        ├── hooks/                      # useVoiceAssistant hook
+        ├── context/                    # Mobile AppContext provider
+        └── services/                   # Mobile API service integration
+```
 
 ---
 
-## 📌 Installation & Setup
+## Installation & Setup Instructions
 
 ### Prerequisites
 - Python 3.12+
-- Node.js 18+
-- API keys for Google Gemini and Groq
+- Node.js 18+ and npm
+- Active API Key for Google Gemini (`GEMINI_API_KEY` or `GOOGLE_API_KEY`)
 
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd homeos
+### 1. Environment Configuration
+
+Create a `.env` file in `homeos/backend/.env`:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+GOOGLE_API_KEY=your_gemini_api_key_here
+
+# Optional LangSmith Tracing Configuration
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your_langsmith_api_key_here
+LANGCHAIN_PROJECT=HomeOS-Production
 ```
 
-### 2. Backend Setup
+---
+
+### 2. Backend Setup & Launch
+
 ```bash
-cd backend
+# Navigate to backend directory
+cd homeos/backend
 
-# Create and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Create virtual environment
+python3 -m venv .venv
 
-# Install dependencies
+# Activate virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+# .venv\Scripts\activate
+
+# Install required dependencies
 pip install -r requirements.txt
 
-# Create environment file
-cp .env.example .env
+# Start FastAPI server via Uvicorn
+uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Edit `.env` and add your credentials:
-```env
-GOOGLE_API_KEY=your_gemini_api_key
-GROQ_API_KEY=your_groq_api_key
-```
+- Server Endpoint: `http://127.0.0.1:8000`
+- Interactive OpenAPI Documentation: `http://127.0.0.1:8000/docs`
 
-Start the backend server:
+---
+
+### 3. Frontend Web Setup & Launch
+
 ```bash
-uvicorn app:app --reload
-```
-*Backend will be available at:* `http://127.0.0.1:8000`  
-*Swagger Documentation:* `http://127.0.0.1:8000/docs`
+# Navigate to frontend directory
+cd homeos/frontend
 
-### 3. Frontend Setup
+# Install node dependencies
+npm install
+
+# Start Vite development server
+npm run dev
+```
+
+- Web Dashboard URL: `http://localhost:5173`
+
+---
+
+### 4. Mobile Application Setup & Launch
+
 ```bash
-cd ../frontend
+# Navigate to mobile directory
+cd homeos/mobile
 
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Start Expo development server
+npx expo start
 ```
-*Frontend will be available at:* `http://localhost:5173`
+
+- Press `a` to open in Android Emulator, `i` for iOS Simulator, or scan the QR code via Expo Go app.
 
 ---
 
-## 📌 Verification
+## Database Schema & Data Persistence
 
-To verify that all services are correctly configured and communicating, run the verification script in the backend directory:
+### SQLite Database (`homeos/backend/data/homeos.db`)
+The application persists structured relational data in SQLite:
+- `Inventory`: Current stock (`ingredient`, `quantity`, `original_quantity`, `unit`, `expiry_date`).
+- `MealExecution`: Logged meal completions (`day`, `meal_type`, `recipe_name`, `completed_at`).
+- `receipts`: Scanned receipt metadata (`store_name`, `date`, `total_amount`, `raw_text`).
+- `receipt_items`: Line items parsed from receipts (`receipt_id`, `item_name`, `quantity`, `unit`, `price`).
+- `MealHistory`: Historical record of prepared meals for frequency penalties.
+- `waste_history`: Recorded item expiration and spoilage occurrences.
+- `monthly_expenses`: Aggregated expenditure metrics.
+
+---
+
+## Core API Endpoints
+
+### Meal Planning API (`/api/plan`)
+- `GET /api/plan/` - Retrieves active meal plan enriched with dynamic shopping intelligence and completion flags.
+- `POST /api/plan/generate` - Clears past execution states and executes the 8-node LangGraph workflow.
+- `POST /api/plan/complete-meal` - Records a completed meal, deducts ingredient quantities from SQLite, and updates agent trace logs.
+- `POST /api/plan/undo-meal` - Reverts meal completion and restores ingredient quantities.
+- `GET /api/plan/day/{id}` - Fetches detailed meal information for a specific day (Days 1–3).
+- `GET /api/plan/trace` - Retrieves step-by-step reasoning logs generated during planning execution.
+
+### Recipes API (`/api/recipes`)
+- `GET /api/recipes/` - Fetches stored recipe library.
+- `POST /api/recipes/` - Inserts a new recipe into SQLite CSV storage and indexes its vector representation into Qdrant.
+
+### Receipts API (`/api/receipts`)
+- `POST /api/receipts/` - Uploads a receipt image/text, executes RapidOCR/Gemini parsing, and returns structured candidate items.
+- `POST /api/receipts/confirm` - Confirms user-verified receipt line items and updates SQLite inventory.
+
+### Assistant API (`/api/assistant`)
+- `POST /api/assistant/chat` - Processes natural language queries concerning inventory levels, recipes, and meal recommendations.
+
+### Observability API (`/api/v1/observability`)
+- `GET /api/v1/observability/summary` - Returns executive metrics for dashboard telemetry.
+- `GET /api/v1/observability/engineering` - Returns system latency and trace URL references.
+- `GET /api/v1/observability/finops` - Returns token expenditure breakdowns.
+- `GET /api/v1/observability/governance` - Returns evaluation scores and compliance logs.
+- `GET /api/v1/observability/cost-report-pdf` - Downloads generated PDF cost report binary.
+
+---
+
+## Verification & Testing Instructions
+
+### System Diagnostic Script
+Run the automated diagnostic suite in the backend directory:
 
 ```bash
+cd homeos/backend
 python verify_ai.py
 ```
-This script checks:
-- Gemini API connectivity and embedding generation.
-- Qdrant local collection initialization.
-- SQLite database schema readiness.
-- LangGraph workflow compilation.
+
+The script verifies:
+1. Gemini API connectivity and embedding generation (`gemini-embedding-2`).
+2. Qdrant local vector database collection status.
+3. SQLite database table schema integrity (`homeos.db`).
+4. LangGraph state graph compilation.
+
+### Automated Test Suite & Compilation Verification
+```bash
+# Python Compilation Check
+python -m compileall homeos/backend
+
+# Frontend Production Build Check
+cd homeos/frontend
+npm run build
+
+# Mobile TypeScript Type Check
+cd homeos/mobile
+npx tsc --noEmit
+```
 
 ---
 
-## 📌 Future Improvements
+## Assumptions & Limitations
 
-- **Persistent Vector Storage**: Transition Qdrant from in-memory to local disk storage to eliminate startup re-indexing.
-- **Distributed Caching**: Implement Redis to cache frequent recipe queries and generated meal plans.
-- **Multi-User Support**: Migrate from SQLite to PostgreSQL for robust concurrent user management and role-based access.
-
----
-
-## 📌 Development Team
-
-**Team 39**  
-Built for Agentrix 2026.  
+- **API Dependency**: Generative meal planning and vector embedding generation require an active Google Gemini API key. If disconnected, system fallbacks provide deterministic inventory calculations.
+- **Single Household Context**: Current database design optimizes for a single-household instance.
 
 ---
 
-## License
+## License & Team Information
 
-This project is intended for educational and competition use. See the `LICENSE` file for details.
+Built by **Team 39** for **Agentrix 2026**.  
+Distributed under standard competition and educational usage guidelines.
