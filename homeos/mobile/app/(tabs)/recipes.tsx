@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Utensils, Clock, Flame, Sparkles, CheckCircle2, X, BookOpen, ChevronRight, Heart, Users, Tag, AlertTriangle, Plus, Trash2, Layers } from 'lucide-react-native';
+import { Search, Utensils, Clock, Flame, Sparkles, CheckCircle2, X, BookOpen, ChevronRight, Heart, Users, Tag, AlertTriangle, Plus, Trash2, Layers, Cpu, BrainCircuit } from 'lucide-react-native';
 import { getRecipes, createRecipe } from '../../services/api';
 
 export default function MobileRecipesScreen() {
@@ -47,6 +47,7 @@ export default function MobileRecipesScreen() {
 
   const filters = [
     'All',
+    'User Recipes',
     'Breakfast',
     'Lunch',
     'Dinner',
@@ -165,7 +166,9 @@ export default function MobileRecipesScreen() {
       (r.ingredients && r.ingredients.some((i: string) => i.toLowerCase().includes(query)));
 
     if (!matchesSearch) return false;
+
     if (selectedFilter === 'All') return true;
+    if (selectedFilter === 'User Recipes') return r.is_user_created;
     if (selectedFilter === 'Available Now') return r.availability_status === 'Available Now';
     if (selectedFilter === 'Need Shopping') return r.availability_status === 'Need Shopping';
 
@@ -176,6 +179,9 @@ export default function MobileRecipesScreen() {
 
     return cuisineMatch || mealMatch || tagMatch;
   });
+
+  const userCreatedRecipes = recipes.filter(r => r.is_user_created);
+  const homeosCount = recipes.length - userCreatedRecipes.length;
 
   const getIngredientQtyString = (recipe: any, ingName: string) => {
     if (!recipe.ingredients_json) return '1 portion';
@@ -205,7 +211,9 @@ export default function MobileRecipesScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Recipe Library</Text>
-            <Text style={styles.headerSubtitle}>{recipes.length} Recipes • AI Knowledge Base</Text>
+            <Text style={styles.headerSubtitle}>
+              {recipes.length} Recipes ({homeosCount} HomeOS • {userCreatedRecipes.length} User)
+            </Text>
           </View>
           <TouchableOpacity onPress={() => setIsAddModalOpen(true)} style={styles.addBtnHeader} activeOpacity={0.8}>
             <Plus size={14} color="#ffffff" />
@@ -216,6 +224,37 @@ export default function MobileRecipesScreen() {
 
       {/* Main Body */}
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        
+        {/* Recently Learned Recipes Shelf (Mobile Feature 5) */}
+        {userCreatedRecipes.length > 0 ? (
+          <View style={styles.shelfBox}>
+            <View style={styles.shelfHeaderRow}>
+              <Sparkles size={14} color="#fbbf24" />
+              <Text style={styles.shelfTitleText}>Recently Learned User Recipes ({userCreatedRecipes.length})</Text>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {userCreatedRecipes.map(r => (
+                <TouchableOpacity
+                  key={r.id}
+                  onPress={() => setSelectedRecipe(r)}
+                  style={styles.shelfCard}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.userBadgeChip}>
+                    <Text style={styles.userBadgeChipText}>🧠 Learned by AI</Text>
+                  </View>
+                  <Text style={styles.shelfCardTitle} numberOfLines={1}>{r.recipe_name}</Text>
+                  <View style={styles.shelfCardFooter}>
+                    <Text style={styles.shelfCardMatch}>Match {r.pantry_match_pct}%</Text>
+                    <Text style={styles.shelfCardStatus}>Indexed ✓</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
         {/* Search Bar */}
         <View style={styles.searchBar}>
           <Search size={16} color="#94a3b8" />
@@ -271,8 +310,19 @@ export default function MobileRecipesScreen() {
               return (
                 <View key={r.id} style={styles.recipeCard}>
                   <View style={styles.cardTopRow}>
-                    <View style={styles.cuisineBadge}>
-                      <Text style={styles.cuisineText}>{r.cuisine} • {r.meal_type}</Text>
+                    <View style={styles.badgesRow}>
+                      <View style={styles.cuisineBadge}>
+                        <Text style={styles.cuisineText}>{r.cuisine} • {r.meal_type}</Text>
+                      </View>
+                      {r.is_user_created ? (
+                        <View style={styles.userBadgeMobile}>
+                          <Text style={styles.userBadgeMobileText}>🧠 Learned by AI</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.homeosBadgeMobile}>
+                          <Text style={styles.homeosBadgeMobileText}>🏠 HomeOS</Text>
+                        </View>
+                      )}
                     </View>
                     <TouchableOpacity onPress={() => toggleFavorite(r.id)}>
                       <Heart size={16} color={isFav ? '#f43f5e' : '#64748b'} fill={isFav ? '#f43f5e' : 'none'} />
@@ -491,8 +541,15 @@ export default function MobileRecipesScreen() {
             {/* Modal Header Bar */}
             <View style={styles.modalHeaderBar}>
               <View style={{ flex: 1 }}>
-                <View style={styles.cuisineBadgeModal}>
-                  <Text style={styles.cuisineTextModal}>{selectedRecipe.cuisine} • {selectedRecipe.meal_type}</Text>
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                  <View style={styles.cuisineBadgeModal}>
+                    <Text style={styles.cuisineTextModal}>{selectedRecipe.cuisine} • {selectedRecipe.meal_type}</Text>
+                  </View>
+                  {selectedRecipe.is_user_created ? (
+                    <View style={styles.userBadgeMobile}>
+                      <Text style={styles.userBadgeMobileText}>🧠 Learned by AI</Text>
+                    </View>
+                  ) : null}
                 </View>
                 <Text style={styles.modalHeaderTitle}>{selectedRecipe.recipe_name}</Text>
               </View>
@@ -546,7 +603,7 @@ export default function MobileRecipesScreen() {
               <View style={styles.modalAiBox}>
                 <Sparkles size={18} color="#818cf8" style={{ marginTop: 2 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.modalAiTitle}>AI Recommendation Rationale</Text>
+                  <Text style={styles.modalAiTitle}>Why this recipe? (AI Recommendation Rationale)</Text>
                   <Text style={styles.modalAiText}>{selectedRecipe.ai_recommendation_reason}</Text>
                 </View>
               </View>
@@ -700,6 +757,65 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 14,
   },
+  shelfBox: {
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.25)',
+    gap: 8,
+  },
+  shelfHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shelfTitleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  shelfCard: {
+    width: 160,
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
+    gap: 4,
+  },
+  userBadgeChip: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  userBadgeChipText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#818cf8',
+  },
+  shelfCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  shelfCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  shelfCardMatch: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#34d399',
+  },
+  shelfCardStatus: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#38bdf8',
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -790,6 +906,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   cuisineBadge: {
     backgroundColor: 'rgba(99, 102, 241, 0.15)',
     paddingHorizontal: 8,
@@ -800,6 +922,30 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#818cf8',
     fontWeight: '700',
+  },
+  userBadgeMobile: {
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+  },
+  userBadgeMobileText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#c084fc',
+  },
+  homeosBadgeMobile: {
+    backgroundColor: '#090b14',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  homeosBadgeMobileText: {
+    fontSize: 9,
+    color: '#94a3b8',
+    fontWeight: '600',
   },
   cardTitle: {
     fontSize: 14,
@@ -982,7 +1128,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 6,
     alignSelf: 'flex-start',
-    marginBottom: 4,
   },
   cuisineTextModal: {
     fontSize: 10,
