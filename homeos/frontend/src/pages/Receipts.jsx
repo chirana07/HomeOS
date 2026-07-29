@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import ReceiptReviewModal from '../components/ReceiptReviewModal';
+import ReceiptInput from '../components/ReceiptInput';
 import { Camera, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function Receipts() {
@@ -50,6 +51,8 @@ export default function Receipts() {
           Open Ingestion Review
         </button>
       </div>
+
+      <ReceiptInput onReceiptAdded={refreshData} />
 
       {/* Current Active Inventory Table */}
       <div className="bg-[#0f172a] border border-[#1e293b] rounded-3xl overflow-hidden shadow-xl">

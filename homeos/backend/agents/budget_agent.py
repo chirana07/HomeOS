@@ -79,21 +79,42 @@ def budget_agent(state: AgentState):
             updated_plan[day_key][meal_type] = meal_copy
 
     # Construct the shopping list
+    shopping_list_items = set(missing_set)
+    for item in inventory:
+        try:
+            qty = float(item.get("quantity", 0.0))
+            orig = float(item.get("original_quantity", qty))
+            if orig > 0 and qty < orig:
+                shopping_list_items.add(item["name"].lower())
+        except (ValueError, TypeError):
+            pass
+
     shopping_list = []
     total_cost = 0.0
     
-    for ing in sorted(list(missing_set)):
+    for ing in sorted(list(shopping_list_items)):
         price_info = market_prices.get(ing, {"price": 100.0, "qty": "1 unit"})
         cost = price_info["price"]
         total_cost += cost
         
-        priority = "medium"
-        if ing in ["cooking oil", "onions", "garlic"]:
-            priority = "high"
-        elif ing in ["chicken"]:
-            priority = "medium"
-        else:
-            priority = "low"
+        # Calculate priority dynamically based on remaining quantity
+        priority = "high" # default to high if not in inventory
+        for item in inventory:
+            if item.get("name", "").lower() == ing:
+                try:
+                    qty = float(item.get("quantity", 0.0))
+                    orig = float(item.get("original_quantity", qty))
+                except (ValueError, TypeError):
+                    qty = 0.0
+                    orig = 1.0
+                
+                if qty <= 0.0:
+                    priority = "high"
+                elif qty <= orig * 0.5:
+                    priority = "medium"
+                else:
+                    priority = "low"
+                break
             
         shopping_list.append({
             "item": ing.capitalize(),

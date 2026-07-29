@@ -222,6 +222,10 @@ def _process_and_save_receipt(raw_text: str, purchase_date: str, store_name: str
         "warnings": warnings
     }
 
+@router.post("/")
+def add_receipt(req: ReceiptRequest):
+    return _process_and_save_receipt(req.raw_text, req.purchase_date, req.store_name)
+
 class ConfirmReceiptItem(BaseModel):
     name: str
     quantity: str
