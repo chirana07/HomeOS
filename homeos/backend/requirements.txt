@@ -7,4 +7,6 @@ pydantic>=2.7.4
 python-dotenv>=1.0.1
 python-multipart>=0.0.9
 edge-tts>=7.0.0
-python-multipart
+sqlalchemy>=2.0.0
+streamlit>=1.30.0
+pandas>=2.0.0

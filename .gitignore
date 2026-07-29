@@ -3,7 +3,10 @@
 !README.md
 homeos.zip
 *.db
+*.db.bak
 *.sqlite
+.agents/
+
 
 
 

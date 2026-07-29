@@ -1,7 +1,22 @@
 # logger.py
+import json
 import time
+import uuid
 import traceback
 from datetime import datetime
+
+def get_correlation_id() -> str:
+    return f"corr_{uuid.uuid4().hex[:8]}"
+
+def log_structured_json(event_name: str, level: str = "INFO", correlation_id: str = None, **kwargs):
+    log_payload = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "level": level.upper(),
+        "correlation_id": correlation_id or get_correlation_id(),
+        "event": event_name
+    }
+    log_payload.update(kwargs)
+    print(f"[JSON_LOG] {json.dumps(log_payload)}")
 
 def log_request_start(method: str, route: str, detail: str = None):
     """
@@ -15,6 +30,7 @@ def log_request_start(method: str, route: str, detail: str = None):
     if detail:
         print(f"Detail: {detail}")
     print("----------------------------------------")
+    log_structured_json("http_request_start", method=method, route=route, detail=detail)
 
 def log_workflow_step(step_name: str, result: str, details: list = None):
     """
@@ -26,6 +42,7 @@ def log_workflow_step(step_name: str, result: str, details: list = None):
         for d in details:
             print(f"  • {d}")
     print("----------------------------------------")
+    log_structured_json("workflow_step", step_name=step_name, result=result, details=details)
 
 def log_request_success(execution_time: float, items_updated: int = None, status: str = "SUCCESS"):
     """
@@ -39,6 +56,7 @@ def log_request_success(execution_time: float, items_updated: int = None, status
     print("STATUS")
     print(status.upper())
     print("====================================================\n")
+    log_structured_json("http_request_success", execution_time_sec=round(execution_time, 3), status=status)
 
 def log_api_request(method: str, route: str, steps: list = None, execution_time: float = 0.0, status: str = "SUCCESS"):
     """
@@ -65,11 +83,10 @@ def log_api_error(method: str, route: str, error: Exception, affected_module: st
     print(f"Affected Module: {affected_module}")
     print(f"Exception Details: {str(error)}")
     print("----------------------------------------")
-    print("Probable Cause & Suggested Action:")
     if suggested_action:
         print(f"• {suggested_action}")
     else:
         print("• Ensure FastAPI backend and SQLite database are accessible.")
         print("• Check environment variables (GEMINI_API_KEY, GROQ_API_KEY).")
-        print("• Verify network connection between physical device and server IP.")
     print("====================================================\n")
+    log_structured_json("http_request_error", level="ERROR", route=f"{method} {route}", error=str(error), affected_module=affected_module)
