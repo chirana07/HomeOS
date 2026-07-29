@@ -15,19 +15,30 @@ from agents.meal_planner_agent import meal_planner_agent
 from agents.budget_agent import budget_agent
 from agents.reflection_agent import reflection_agent
 from agents.reporting_agent import reporting_agent
+from observability.langsmith_tracer import trace_agent_node
 
 # Initialize State Graph
 workflow = StateGraph(AgentState)
 
+# Wrap agent node functions with observability telemetry decorators
+coordinator_node = trace_agent_node("coordinator")(coordinator_agent)
+inventory_node = trace_agent_node("inventory")(inventory_agent)
+waste_node = trace_agent_node("waste")(waste_agent)
+recipe_node = trace_agent_node("recipe")(recipe_agent)
+meal_planner_node = trace_agent_node("meal_planner")(meal_planner_agent)
+budget_node = trace_agent_node("budget")(budget_agent)
+reflection_node = trace_agent_node("reflection")(reflection_agent)
+reporting_node = trace_agent_node("reporting")(reporting_agent)
+
 # Add Agent Node Functions
-workflow.add_node("coordinator", coordinator_agent)
-workflow.add_node("inventory", inventory_agent)
-workflow.add_node("waste", waste_agent)
-workflow.add_node("recipe", recipe_agent)
-workflow.add_node("meal_planner", meal_planner_agent)
-workflow.add_node("budget", budget_agent)
-workflow.add_node("reflection", reflection_agent)
-workflow.add_node("reporting", reporting_agent)
+workflow.add_node("coordinator", coordinator_node)
+workflow.add_node("inventory", inventory_node)
+workflow.add_node("waste", waste_node)
+workflow.add_node("recipe", recipe_node)
+workflow.add_node("meal_planner", meal_planner_node)
+workflow.add_node("budget", budget_node)
+workflow.add_node("reflection", reflection_node)
+workflow.add_node("reporting", reporting_node)
 
 # Set Entrypoint
 workflow.set_entry_point("coordinator")
@@ -46,7 +57,6 @@ def route_reflection(state: AgentState):
     Routes from reflection agent back to meal planner on FAIL (up to MAX_RETRIES=1),
     otherwise proceeds to the reporting agent.
     """
-    # Note: retry_count is incremented inside reflection_agent on FAIL
     ref_res = state.get("reflection_result", {})
     status = ref_res.get("status") if isinstance(ref_res, dict) else ref_res
     if status == "FAIL" and state.get("retry_count", 0) <= 1:

@@ -523,7 +523,10 @@ def get_inventory():
         with open(prices_file, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                market_prices[row["item"].lower()] = float(row["price"])
+                item_key = (row.get("ingredient") or row.get("item") or "").lower()
+                price_val = float(row.get("price_per_unit") or row.get("price") or 0.0)
+                if item_key:
+                    market_prices[item_key] = price_val
                 
     today_str = datetime.now().strftime("%Y-%m-%d")
     inventory_items = []
