@@ -468,48 +468,155 @@ export default function Dashboard() {
               <ShoppingBag className="w-5 h-5 text-indigo-400" />
               <h3 className="text-base font-bold text-white">Shopping Status</h3>
             </div>
-            <span className="text-xs text-slate-400 font-semibold">
-              {currentPlan?.shopping_list?.length || 0} additions
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              🛒 {currentPlan?.shopping_summary?.total_attention_count || currentPlan?.shopping_list?.length || 0} items need attention
             </span>
           </div>
 
-          {!currentPlan?.shopping_list || currentPlan.shopping_list.length === 0 ? (
+          {(!currentPlan?.shopping_summary && (!currentPlan?.shopping_list || currentPlan.shopping_list.length === 0)) ||
+           (currentPlan?.shopping_summary && currentPlan.shopping_summary.total_attention_count === 0) ? (
             <div className="p-8 text-center border border-emerald-500/30 rounded-2xl bg-emerald-500/10 flex flex-col items-center gap-3">
               <CheckCircle2 className="w-10 h-10 text-emerald-400" />
               <div>
                 <h4 className="text-base font-bold text-white">✅ Pantry Complete</h4>
-                <p className="text-xs text-slate-300 mt-1">Everything needed for this meal plan is already available in your cabinet.</p>
+                <p className="text-xs text-slate-300 mt-1">Everything needed for your household is sufficiently stocked in your cabinet.</p>
               </div>
               <span className="text-xs font-bold text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30">
                 Estimated Shopping Cost: LKR 0
               </span>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-white/[0.08] text-slate-400 font-bold uppercase text-[10px] tracking-wider">
-                    <th className="py-2.5 px-3">Ingredient</th>
-                    <th className="py-2.5 px-3">Quantity</th>
-                    <th className="py-2.5 px-3">Est. Cost</th>
-                    <th className="py-2.5 px-3 text-right">Priority</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.08] text-slate-200">
-                  {currentPlan.shopping_list.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[#090b14]/50 transition-colors">
-                      <td className="py-2.5 px-3 font-bold text-white">{item.item || item.name}</td>
-                      <td className="py-2.5 px-3 text-slate-400">{item.qty || item.quantity || '1 unit'}</td>
-                      <td className="py-2.5 px-3 font-bold text-emerald-400">LKR {(item.cost || item.price || 0).toLocaleString()}</td>
-                      <td className="py-2.5 px-3 text-right">
-                        <span className={`px-2.5 py-1 rounded-full border text-[10px] font-bold ${getPriorityBadgeClass(item.priority)}`}>
-                          {(item.priority || 'Medium').toUpperCase()}
+            <div className="flex flex-col gap-4 text-xs">
+              {/* Categorized Priority View */}
+              {currentPlan?.shopping_summary?.items ? (
+                <div className="space-y-3.5 max-h-[260px] overflow-y-auto pr-1">
+                  {/* Critical Section */}
+                  {currentPlan.shopping_summary.items.critical?.length > 0 && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-bold text-red-400 flex items-center gap-1.5 text-xs">
+                          🔴 Critical — Buy Today ({currentPlan.shopping_summary.items.critical.length})
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        {currentPlan.shopping_summary.items.critical.length > 3 && (
+                          <span className="text-[10px] text-red-300 font-semibold bg-red-500/20 px-2 py-0.5 rounded-full">
+                            +{currentPlan.shopping_summary.items.critical.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {currentPlan.shopping_summary.items.critical.slice(0, 3).map((item, idx) => (
+                          <div key={idx} className="bg-[#090b14]/60 rounded-lg p-2 flex flex-col gap-1 border border-white/[0.05]">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-white text-xs">{item.name}</span>
+                              <span className="font-mono text-emerald-400 text-xs font-bold">LKR {item.cost?.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-400">
+                              <span>Qty: <strong className="text-slate-200">{item.current_qty}</strong> ({item.remaining_pct}% left)</span>
+                              <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/30">
+                                {item.ai_reasoning}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Essential Section */}
+                  {currentPlan.shopping_summary.items.essential?.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-bold text-amber-400 flex items-center gap-1.5 text-xs">
+                          🟠 Essential — Buy This Week ({currentPlan.shopping_summary.items.essential.length})
+                        </span>
+                        {currentPlan.shopping_summary.items.essential.length > 5 && (
+                          <span className="text-[10px] text-amber-300 font-semibold bg-amber-500/20 px-2 py-0.5 rounded-full">
+                            +{currentPlan.shopping_summary.items.essential.length - 5} more
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {currentPlan.shopping_summary.items.essential.slice(0, 5).map((item, idx) => (
+                          <div key={idx} className="bg-[#090b14]/60 rounded-lg p-2 flex flex-col gap-1 border border-white/[0.05]">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-white text-xs">{item.name}</span>
+                              <span className="font-mono text-emerald-400 text-xs font-bold">LKR {item.cost?.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-400">
+                              <span>Qty: <strong className="text-slate-200">{item.current_qty}</strong> ({item.remaining_pct}% left)</span>
+                              <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
+                                {item.ai_reasoning}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Running Low Section */}
+                  {currentPlan.shopping_summary.items.running_low?.length > 0 && (
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-bold text-blue-400 flex items-center gap-1.5 text-xs">
+                          🟡 Running Low ({currentPlan.shopping_summary.items.running_low.length})
+                        </span>
+                        {currentPlan.shopping_summary.items.running_low.length > 3 && (
+                          <span className="text-[10px] text-blue-300 font-semibold bg-blue-500/20 px-2 py-0.5 rounded-full">
+                            +{currentPlan.shopping_summary.items.running_low.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {currentPlan.shopping_summary.items.running_low.slice(0, 3).map((item, idx) => (
+                          <div key={idx} className="bg-[#090b14]/60 rounded-lg p-2 flex flex-col gap-0.5 border border-white/[0.05]">
+                            <span className="font-bold text-white text-[11px] truncate">{item.name}</span>
+                            <span className="text-[10px] text-slate-400">{item.remaining_pct}% left</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Fallback List View */
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/[0.08] text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                        <th className="py-2.5 px-3">Ingredient</th>
+                        <th className="py-2.5 px-3">Quantity</th>
+                        <th className="py-2.5 px-3">Est. Cost</th>
+                        <th className="py-2.5 px-3 text-right">Priority</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.08] text-slate-200">
+                      {currentPlan.shopping_list.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-[#090b14]/50 transition-colors">
+                          <td className="py-2.5 px-3 font-bold text-white">{item.item || item.name}</td>
+                          <td className="py-2.5 px-3 text-slate-400">{item.qty || item.quantity || '1 unit'}</td>
+                          <td className="py-2.5 px-3 font-bold text-emerald-400">LKR {(item.cost || item.price || 0).toLocaleString()}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`px-2.5 py-1 rounded-full border text-[10px] font-bold ${getPriorityBadgeClass(item.priority)}`}>
+                              {(item.priority || 'Medium').toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Bottom Summary Bar */}
+              <div className="flex items-center justify-between border-t border-white/[0.08] pt-3 mt-1">
+                <span className="text-xs text-slate-400 font-medium">
+                  {currentPlan?.shopping_summary?.well_stocked_count || 24} pantry items sufficiently stocked
+                </span>
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/20 px-3 py-1.5 rounded-xl border border-emerald-500/30">
+                  Est. Shopping Cost: LKR {(currentPlan?.shopping_summary?.estimated_shopping_cost || 0).toLocaleString()}
+                </span>
+              </div>
             </div>
           )}
         </div>

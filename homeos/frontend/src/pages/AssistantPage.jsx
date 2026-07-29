@@ -1,12 +1,19 @@
-// AssistantPage.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Bot, Send, User, Sparkles, RefreshCw, Volume2, Mic } from 'lucide-react';
 
 export default function AssistantPage() {
+  const location = useLocation();
   const { chatHistory, sendChatMessage, isThinking, refreshData } = useApp();
   const [inputText, setInputText] = useState('');
   const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (location.state?.prefilledPrompt) {
+      setInputText(location.state.prefilledPrompt);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
