@@ -31,12 +31,22 @@ export function AppProvider({ children }) {
 
       if (planRes.status === 'fulfilled') {
         setCurrentPlan(planRes.value);
+      } else {
+        console.warn('Plan fetch failed:', planRes.reason);
       }
+
       if (invRes.status === 'fulfilled') {
-        setInventory(Array.isArray(invRes.value) ? invRes.value : (invRes.value.inventory || []));
+        const fetchedInv = Array.isArray(invRes.value) ? invRes.value : (invRes.value.inventory || []);
+        setInventory(fetchedInv);
+        if (pantryRes.status !== 'fulfilled' || !Array.isArray(pantryRes.value) || pantryRes.value.length === 0) {
+          setPantryList(fetchedInv.map(i => i.ingredient || i.name));
+        }
+      } else {
+        console.warn('Inventory fetch failed:', invRes.reason);
       }
-      if (pantryRes.status === 'fulfilled') {
-        setPantryList(Array.isArray(pantryRes.value) ? pantryRes.value : []);
+
+      if (pantryRes.status === 'fulfilled' && Array.isArray(pantryRes.value) && pantryRes.value.length > 0) {
+        setPantryList(pantryRes.value);
       }
     } catch (err) {
       console.error('Data refresh error:', err);

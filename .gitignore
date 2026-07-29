@@ -3,11 +3,13 @@
 !README.md
 homeos.zip
 *.db
+*.db.bak
 *.sqlite
-
-
-
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+*.db-journal
+*.db-wal
+*.db-shm
+!homeos/backend/data/homeos.db
+.agents/
 
 # dependencies
 node_modules/
@@ -61,12 +63,8 @@ homeos/backend/routes/__pycache__/
 homeos/backend/tools/__pycache__/
 homeos/backend/vector_db/__pycache__/
 
-homeos/backend/data/homeos.db
-homeos/backend/data/meal_plan.json
-
 node_modules/
 dist/
-
 
 # IDEs
 .idea/
@@ -77,15 +75,4 @@ dist/
 
 # Expo
 mobile/.expo/
-
-# IDE
-.idea/
-
-# VS Code
-.vscode/
-
-# AI tools
-.claude/
-
-# Expo
-mobile/.expo/
+mobile/.expo/.env

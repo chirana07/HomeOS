@@ -5,6 +5,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.65.1",
     "expo": "~54.0.0",
+    "expo-av": "~16.0.8",
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-font": "~14.0.12",

@@ -45,11 +45,22 @@ import {
 import * as Speech from 'expo-speech';
 import Animated, { FadeInUp, SlideInDown, Layout } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { useVoiceAssistant } from '../../hooks/useVoiceAssistant';
+import { VoiceAssistantModal } from '../../components/VoiceAssistantModal';
+import { VoiceFloatingButton } from '../../components/VoiceFloatingButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAROUSEL_CARD_WIDTH = SCREEN_WIDTH * 0.82;
 
 export default function HomeOSScreen() {
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const voice = useVoiceAssistant();
+
+  const openVoiceAssistant = () => {
+    setIsVoiceModalOpen(true);
+    voice.startListening();
+  };
+
   const { 
     currentPlan, 
     inventory,
@@ -162,9 +173,10 @@ export default function HomeOSScreen() {
   };
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      contentContainerStyle={styles.content}
+    <View style={{ flex: 1 }}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
       }
@@ -333,11 +345,12 @@ export default function HomeOSScreen() {
         <View style={styles.plannerBannerLeft}>
           <Users size={16} color="#6366f1" />
           <Text style={styles.plannerBannerText}>
-            👨‍👩‍👧‍👦 {familySize} People • LKR {budget.toLocaleString()}/month
+            {familySize} People • LKR {budget.toLocaleString()}/month
           </Text>
         </View>
-        <TouchableOpacity onPress={() => setIsPlannerModalOpen(true)} style={styles.plannerBannerBtn}>
-          <Text style={styles.plannerBannerBtnText}>Configure →</Text>
+        <TouchableOpacity onPress={() => setIsPlannerModalOpen(true)} style={styles.plannerBannerBtn} activeOpacity={0.8}>
+          <Text style={styles.plannerBannerBtnText}>Configure</Text>
+          <ArrowRight size={12} color="#fff" />
         </TouchableOpacity>
       </Animated.View>
 
@@ -447,7 +460,8 @@ export default function HomeOSScreen() {
                     <Text style={styles.dayMealSub}>{dayObj.breakfast?.meal_name || 'Standard'}</Text>
                   </View>
                   <View style={styles.dayNavRow}>
-                    <Text style={styles.dayNavText}>View →</Text>
+                    <Text style={styles.dayNavText}>View</Text>
+                    <ArrowRight size={12} color="#6366f1" />
                   </View>
                 </TouchableOpacity>
               );
@@ -456,43 +470,126 @@ export default function HomeOSScreen() {
         </Animated.View>
       )}
 
-      {/* 7. SHOPPING CARD (~90px Compressed Success Card) */}
+      {/* 7. SHOPPING CARD (Compact Summary + View All Navigation) */}
       <Animated.View entering={FadeInUp.delay(300)} style={styles.cardContainer}>
         <View style={styles.cardHeaderRow}>
-          <ShoppingBag size={18} color="#6366f1" />
-          <Text style={styles.cardTitle}>Shopping Status</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <ShoppingBag size={18} color="#6366f1" />
+            <Text style={styles.cardTitle}>Shopping Status</Text>
+          </View>
+          <Text style={{ fontSize: 11, color: '#f59e0b', fontWeight: '700' }}>
+            🛒 {currentPlan?.shopping_summary?.total_attention_count || currentPlan?.shopping_list?.length || 0} items
+          </Text>
         </View>
 
-        {!currentPlan?.shopping_list || currentPlan.shopping_list.length === 0 ? (
+        {(!currentPlan?.shopping_summary && (!currentPlan?.shopping_list || currentPlan.shopping_list.length === 0)) ||
+         (currentPlan?.shopping_summary && currentPlan.shopping_summary.total_attention_count === 0) ? (
           <View style={styles.compactSuccessBox}>
             <View style={styles.compactSuccessLeft}>
               <CheckCircle2 size={24} color="#10b981" />
               <View>
-                <Text style={styles.compactSuccessTitle}>✅ Ready to Cook</Text>
-                <Text style={styles.compactSuccessSub}>Everything available</Text>
+                <Text style={styles.compactSuccessTitle}>✅ Pantry Complete</Text>
+                <Text style={styles.compactSuccessSub}>Sufficiently stocked</Text>
               </View>
             </View>
             <View style={styles.compactSuccessRight}>
-              <Text style={styles.compactSuccessCostLabel}>Shopping Cost</Text>
+              <Text style={styles.compactSuccessCostLabel}>Est. Cost</Text>
               <Text style={styles.compactSuccessCostVal}>LKR 0</Text>
             </View>
           </View>
         ) : (
-          <View style={styles.shoppingList}>
-            {currentPlan.shopping_list.map((item: any, idx: number) => (
-              <View key={idx} style={styles.shoppingRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.shoppingName}>{item.item || item.name}</Text>
-                  <Text style={styles.shoppingQty}>{item.qty || item.quantity || '1 unit'}</Text>
-                </View>
-                <Text style={styles.shoppingCost}>LKR {(item.cost || item.price || 0).toLocaleString()}</Text>
-                <View style={[styles.priorityBadge, { borderColor: getPriorityColor(item.priority) }]}>
-                  <Text style={[styles.priorityText, { color: getPriorityColor(item.priority) }]}>
-                    {(item.priority || 'Med').toUpperCase()}
+          <View style={{ gap: 10 }}>
+            {/* Categorized Summary View - Max 3 items per category with "+ X more" */}
+            <View style={{ gap: 8 }}>
+              {/* Critical Category (Max 3) */}
+              {currentPlan?.shopping_summary?.items?.critical?.length > 0 && (
+                <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#ef4444', marginBottom: 4 }}>
+                    🔴 Critical ({currentPlan.shopping_summary.items.critical.length})
                   </Text>
+                  {currentPlan.shopping_summary.items.critical.slice(0, 3).map((item: any, idx: number) => (
+                    <Text key={idx} style={{ fontSize: 11, color: '#f1f5f9', paddingVertical: 1.5, fontWeight: '500' }}>
+                      • {item.name}
+                    </Text>
+                  ))}
+                  {currentPlan.shopping_summary.items.critical.length > 3 && (
+                    <Text style={{ fontSize: 10, color: '#f87171', fontWeight: '700', marginTop: 3 }}>
+                      +{currentPlan.shopping_summary.items.critical.length - 3} more
+                    </Text>
+                  )}
                 </View>
-              </View>
-            ))}
+              )}
+
+              {/* Essential Category (Max 3) */}
+              {currentPlan?.shopping_summary?.items?.essential?.length > 0 && (
+                <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.2)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#f59e0b', marginBottom: 4 }}>
+                    🟠 Essential ({currentPlan.shopping_summary.items.essential.length})
+                  </Text>
+                  {currentPlan.shopping_summary.items.essential.slice(0, 3).map((item: any, idx: number) => (
+                    <Text key={idx} style={{ fontSize: 11, color: '#f1f5f9', paddingVertical: 1.5, fontWeight: '500' }}>
+                      • {item.name}
+                    </Text>
+                  ))}
+                  {currentPlan.shopping_summary.items.essential.length > 3 && (
+                    <Text style={{ fontSize: 10, color: '#fbbf24', fontWeight: '700', marginTop: 3 }}>
+                      +{currentPlan.shopping_summary.items.essential.length - 3} more
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Running Low Category (Max 3) */}
+              {currentPlan?.shopping_summary?.items?.running_low?.length > 0 && (
+                <View style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.2)' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#3b82f6', marginBottom: 4 }}>
+                    🟡 Running Low ({currentPlan.shopping_summary.items.running_low.length})
+                  </Text>
+                  {currentPlan.shopping_summary.items.running_low.slice(0, 3).map((item: any, idx: number) => (
+                    <Text key={idx} style={{ fontSize: 11, color: '#f1f5f9', paddingVertical: 1.5, fontWeight: '500' }}>
+                      • {item.name}
+                    </Text>
+                  ))}
+                  {currentPlan.shopping_summary.items.running_low.length > 3 && (
+                    <Text style={{ fontSize: 10, color: '#60a5fa', fontWeight: '700', marginTop: 3 }}>
+                      +{currentPlan.shopping_summary.items.running_low.length - 3} more
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Stocked Count & Estimated Shopping Cost Bar */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)' }}>
+              <Text style={{ fontSize: 10, color: '#94a3b8' }}>
+                {currentPlan?.shopping_summary?.well_stocked_count || 24} pantry items sufficiently stocked
+              </Text>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#34d399' }}>
+                Est. Cost: LKR {(currentPlan?.shopping_summary?.estimated_shopping_cost || 0).toLocaleString()}
+              </Text>
+            </View>
+
+            {/* CTA Button navigating to dedicated Shopping List Screen */}
+            <TouchableOpacity
+              onPress={() => router.push('/shopping-list')}
+              style={{
+                backgroundColor: '#6366f1',
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                marginTop: 2,
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#ffffff' }}>
+                View Complete Shopping List
+              </Text>
+              <ArrowRight size={14} color="#ffffff" />
+            </TouchableOpacity>
           </View>
         )}
       </Animated.View>
@@ -544,8 +641,9 @@ export default function HomeOSScreen() {
           </View>
           <Text style={styles.floatingAssistantText}>Need recipe help?</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/assistant')} style={styles.floatingAssistantBtn}>
-          <Text style={styles.floatingAssistantBtnText}>Chat with HomeOS AI →</Text>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/assistant')} style={styles.floatingAssistantBtn} activeOpacity={0.8}>
+          <Text style={styles.floatingAssistantBtnText}>Chat with HomeOS AI</Text>
+          <ArrowRight size={12} color="#fff" />
         </TouchableOpacity>
       </Animated.View>
 
@@ -632,6 +730,31 @@ export default function HomeOSScreen() {
         </View>
       </Modal>
     </ScrollView>
+
+    {/* Floating Action Voice Button */}
+    <VoiceFloatingButton onPress={openVoiceAssistant} status={voice.status} />
+
+    {/* Voice Assistant Overlay Modal */}
+    <VoiceAssistantModal
+      visible={isVoiceModalOpen}
+      onClose={() => {
+        voice.cancelRecording();
+        setIsVoiceModalOpen(false);
+      }}
+      status={voice.status}
+      transcript={voice.transcript}
+      errorMsg={voice.errorMsg}
+      isMuted={voice.isMuted}
+      permissionGranted={voice.permissionGranted}
+      conversationHistory={voice.conversationHistory}
+      startListening={voice.startListening}
+      stopListeningAndProcess={voice.stopListeningAndProcess}
+      cancelRecording={voice.cancelRecording}
+      replayLastResponse={voice.replayLastResponse}
+      toggleMute={voice.toggleMute}
+      requestMicrophonePermission={voice.requestMicrophonePermission}
+    />
+    </View>
   );
 }
 
@@ -892,11 +1015,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   aiBriefHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 28,
   },
   aiBriefLeft: {
     flexDirection: 'row',
@@ -961,17 +1087,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   plannerBanner: {
-    backgroundColor: '#1d2440',
-    borderColor: '#334155',
+    backgroundColor: '#151b2e',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    height: 48,
+    minHeight: 48,
   },
   plannerBannerLeft: {
     flexDirection: 'row',
@@ -986,8 +1112,11 @@ const styles = StyleSheet.create({
   plannerBannerBtn: {
     backgroundColor: '#6366f1',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   plannerBannerBtnText: {
     color: '#fff',
@@ -1287,6 +1416,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   floatingAssistantBtnText: {
     color: '#fff',

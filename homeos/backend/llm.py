@@ -3,6 +3,7 @@ import os
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from langsmith import traceable
 
 # Load environment variables
 dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
@@ -11,7 +12,6 @@ load_dotenv(dotenv_path=dotenv_path)
 class GeminiClient:
     def __init__(self):
         # Initialize the official SDK client.
-        # Fall back to a dummy key if none is set to allow startup/offline runs without ValueError
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "DUMMY_KEY_TO_ALLOW_STARTUP"
         self.client = genai.Client(api_key=self.api_key)
 
@@ -24,10 +24,11 @@ def get_gemini_client():
         _client_instance = GeminiClient()
     return _client_instance
 
+@traceable(name="Google Gemini LLM", run_type="llm")
 def generate_text(system_prompt: str, user_content: str, temperature: float = 0.2, json_mode: bool = False) -> str:
     """
     Unified client helper invoking gemini-2.5-flash with system instructions.
-    Optionally configures Q&A for strict JSON responses.
+    Traced automatically in LangSmith under LLM run_type.
     """
     client = get_gemini_client()
     try:
@@ -49,9 +50,11 @@ def generate_text(system_prompt: str, user_content: str, temperature: float = 0.
 
 _embedding_error_logged = False
 
+@traceable(name="Google Gemini Embedding", run_type="embedding")
 def get_embedding(text: str) -> list:
     """
     Generates 768-dimension embeddings using gemini-embedding-2.
+    Traced automatically in LangSmith under Embedding run_type.
     """
     global _embedding_error_logged
     client = get_gemini_client()

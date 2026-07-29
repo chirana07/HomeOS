@@ -172,6 +172,22 @@ export async function getPlanInventory() {
   return response.json();
 }
 
+export async function getRecipes() {
+  const response = await fetch('/api/recipes/');
+  if (!response.ok) {
+    throw new Error('Failed to fetch recipes.');
+  }
+  return response.json();
+}
+
+export async function getRecipeStats() {
+  const response = await fetch('/api/recipes/stats');
+  if (!response.ok) {
+    throw new Error('Failed to fetch recipe statistics.');
+  }
+  return response.json();
+}
+
 export async function chatWithAssistantText(message) {
   const response = await fetch('/api/assistant/chat', {
     method: 'POST',

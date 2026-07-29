@@ -1,0 +1,61 @@
+{
+  "version": "2026.07.1",
+  "providers": {
+    "google": {
+      "gemini-2.5-flash": {
+        "input_per_1k": 0.000075,
+        "output_per_1k": 0.000300,
+        "cached_input_per_1k": 0.00001875
+      },
+      "gemini-1.5-pro": {
+        "input_per_1k": 0.001250,
+        "output_per_1k": 0.005000,
+        "cached_input_per_1k": 0.0003125
+      },
+      "gemini-embedding-2": {
+        "input_per_1k": 0.000020,
+        "output_per_1k": 0.0,
+        "cached_input_per_1k": 0.0
+      },
+      "gemini-embedding-001": {
+        "input_per_1k": 0.000020,
+        "output_per_1k": 0.0,
+        "cached_input_per_1k": 0.0
+      }
+    },
+    "openai": {
+      "gpt-4o-mini": {
+        "input_per_1k": 0.000150,
+        "output_per_1k": 0.000600,
+        "cached_input_per_1k": 0.000075
+      },
+      "gpt-4o": {
+        "input_per_1k": 0.002500,
+        "output_per_1k": 0.010000,
+        "cached_input_per_1k": 0.001250
+      }
+    },
+    "groq": {
+      "whisper-large-v3-turbo": {
+        "price_per_minute": 0.0006
+      },
+      "llama-3.3-70b": {
+        "input_per_1k": 0.00059,
+        "output_per_1k": 0.00079,
+        "cached_input_per_1k": 0.00029
+      }
+    },
+    "anthropic": {
+      "claude-3-5-sonnet": {
+        "input_per_1k": 0.00300,
+        "output_per_1k": 0.01500,
+        "cached_input_per_1k": 0.00030
+      },
+      "claude-3-haiku": {
+        "input_per_1k": 0.00025,
+        "output_per_1k": 0.00125,
+        "cached_input_per_1k": 0.00003
+      }
+    }
+  }
+}

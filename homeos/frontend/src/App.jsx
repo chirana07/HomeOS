@@ -6,6 +6,7 @@ import { AppProvider } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Pantry from './pages/Pantry';
+import Recipes from './pages/Recipes';
 import AssistantPage from './pages/AssistantPage';
 import DayDetail from './pages/DayDetail';
 import AgentTrace from './pages/AgentTrace';
@@ -40,6 +41,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/pantry" element={<Pantry />} />
+                <Route path="/recipes" element={<Recipes />} />
                 <Route path="/assistant" element={<AssistantPage />} />
                 <Route path="/day/:id" element={<DayDetail />} />
                 <Route path="/trace" element={<AgentTrace />} />
