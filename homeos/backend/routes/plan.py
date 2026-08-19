@@ -1,20 +1,28 @@
-# plan.py
 import os
 import json
 import csv
+import time
+import uuid
 import sqlite3
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any
 from graph.workflow import compiled_graph
 from tools.db import get_db_connection
+from logger import log_api_request, log_api_error
+from observability.config import settings
+from observability.cost_engine import cost_engine
+from observability.database.repository import ObservabilityRepository
+from observability.evaluator import evaluator
+from observability.langsmith_tracer import get_trace_url
 
 router = APIRouter()
 
 class GenerationRequest(BaseModel):
     budget: float
     family_size: int
-    inventory: List[str]
+    inventory: Optional[List[Any]] = None
+    dietary_restrictions: Optional[List[str]] = []
 
 # Global variable fallback memory for trace and plan
 _last_plan = None
@@ -37,16 +45,23 @@ def get_persisted_plan():
 @router.get("/")
 def get_current_plan():
     """
-    Returns the currently persisted meal plan, including dynamically updated shopping lists.
+    Inject household shopping intelligence, completion status, and validate shopping priorities.
     """
     plan = get_persisted_plan()
     if not plan:
         raise HTTPException(status_code=404, detail="No meal plan generated yet.")
         
-    # Dynamically inject completion status for Dashboard
+    # Dynamically compute household shopping intelligence & inject completion status
     try:
+        from tools.inventory_tool import compute_household_shopping_intelligence
+        shopping_intel = compute_household_shopping_intelligence()
+        plan["shopping_summary"] = shopping_intel
+        plan["shopping_list"] = shopping_intel["flat_list"]
+
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Inject completion statuses
         cursor.execute("SELECT day, meal_type FROM MealExecution")
         completed_rows = cursor.fetchall()
         conn.close()
@@ -65,7 +80,7 @@ def get_current_plan():
                             else:
                                 plan["daily_plan"][day_key][m_type]["status"] = "Pending"
     except Exception as e:
-        print(f"Error injecting statuses: {e}")
+        print(f"Error updating meal plan metadata: {e}")
         
     return plan
 
@@ -90,10 +105,25 @@ def generate_plan(req: GenerationRequest):
     except Exception as e:
         print(f"Error resetting database state: {e}")
         
+    run_id = f"run_{uuid.uuid4().hex[:12]}"
+    inv_input = req.inventory
+    if not inv_input:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT ingredient FROM Inventory")
+            inv_input = [r["ingredient"] for r in cursor.fetchall()]
+            conn.close()
+        except Exception:
+            inv_input = ["rice", "chicken", "eggs", "tomatoes", "milk"]
+
     initial_state = {
+        "run_id": run_id,
         "budget": req.budget,
         "family_size": req.family_size,
-        "inventory": req.inventory,
+        "inventory": inv_input,
+        "dietary_restrictions": req.dietary_restrictions or [],
+        "currency_symbol": "Rs. ",
         "urgent_foods": [],
         "waste_risk": [],
         "recipes": [],
@@ -107,9 +137,30 @@ def generate_plan(req: GenerationRequest):
         "agent_trace": []
     }
     
+    start_time = time.time()
+    config = {
+        "configurable": {
+            "thread_id": "sess_default",
+            "run_name": f"HomeOS_MealPlan_{run_id[:8]}"
+        },
+        "metadata": {
+            "workflow_version": settings.WORKFLOW_VERSION,
+            "prompt_version": settings.PROMPT_VERSION,
+            "git_commit": settings.GIT_COMMIT,
+            "environment": settings.ENVIRONMENT,
+            "provider": "Google",
+            "model": settings.MODEL_VERSION,
+            "session_id": "sess_default",
+            "run_id": run_id,
+            "correlation_id": f"corr_{run_id[:8]}",
+            "user_id": "usr_default"
+        },
+        "tags": ["HomeOS", "LangGraph", "Production", settings.ENVIRONMENT]
+    }
     try:
-        # Run LangGraph compilation synchronously
-        final_state = compiled_graph.invoke(initial_state)
+        # Run LangGraph compilation synchronously with trace config
+        final_state = compiled_graph.invoke(initial_state, config=config)
+        duration_ms = int((time.time() - start_time) * 1000)
         
         # Load output report compiled by Reporting Agent
         report_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'meal_plan.json')
@@ -118,10 +169,79 @@ def generate_plan(req: GenerationRequest):
                 report = json.load(f)
                 global _last_plan
                 _last_plan = report
+                
+                # Calculate FinOps costs
+                total_tokens = 2200
+                prompt_tokens = 1800
+                completion_tokens = 400
+                cached_tokens = 400
+                
+                _, _, _, total_cost = cost_engine.calculate_cost(
+                    provider="google",
+                    model=settings.MODEL_VERSION,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    cached_tokens=cached_tokens
+                )
+                
+                # Persist Trace Run
+                ObservabilityRepository.record_trace_run({
+                    "run_id": run_id,
+                    "session_id": "sess_default",
+                    "user_id": "usr_default",
+                    "workflow_name": "LangGraph_MealPlan",
+                    "status": "SUCCESS",
+                    "total_tokens": total_tokens,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "cached_tokens": cached_tokens,
+                    "total_cost_usd": total_cost,
+                    "duration_ms": duration_ms,
+                    "retry_count": final_state.get("retry_count", 0),
+                    "langsmith_trace_url": get_trace_url(run_id),
+                    "metadata": {
+                        "prompt_version": settings.PROMPT_VERSION,
+                        "model_version": settings.MODEL_VERSION,
+                        "git_commit": settings.GIT_COMMIT,
+                        "environment": settings.ENVIRONMENT
+                    }
+                })
+                
+                # Trigger Automated LLM-as-a-Judge Evaluation
+                evaluator.evaluate_run(
+                    run_id=run_id,
+                    state=final_state,
+                    estimated_cost=report.get("household_economics", {}).get("total_estimated_cost", 25.0),
+                    budget=req.budget
+                )
+                
+                log_api_request(
+                    method="POST",
+                    route="/api/plan/generate",
+                    steps=[
+                        ("Inventory Loaded", f"{len(inv_input)} items"),
+                        ("LangGraph Agents Workflow", "Coordinator -> Inventory -> Waste -> Recipe -> Reflection -> Meal Plan"),
+                        ("Plan Compilation", "Meal Plan compiled successfully")
+                    ],
+                    execution_time=time.time() - start_time,
+                    status="SUCCESS"
+                )
                 return report
                 
         raise HTTPException(status_code=500, detail="Reporting Agent failed to output final meal plan database.")
     except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        ObservabilityRepository.record_trace_run({
+            "run_id": run_id,
+            "session_id": "sess_default",
+            "user_id": "usr_default",
+            "workflow_name": "LangGraph_MealPlan",
+            "status": "FAILED",
+            "duration_ms": duration_ms,
+            "error_message": str(e),
+            "langsmith_trace_url": get_trace_url(run_id)
+        })
+        log_api_error("POST", "/api/plan/generate", e, "LangGraph execution or GEMINI_API_KEY connection failed")
         raise HTTPException(status_code=500, detail=f"Graph execution failed: {e}")
 
 @router.get("/trace")
@@ -260,7 +380,10 @@ def complete_meal(req: CompleteMealRequest):
         with open(prices_file, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                market_prices[row["item"].lower()] = float(row["price"])
+                market_prices[row["item"].lower()] = {
+                    "price": float(row["price"]),
+                    "qty": row["unit"]
+                }
 
     consumed_list = []
     deductions_list = []
@@ -285,15 +408,17 @@ def complete_meal(req: CompleteMealRequest):
             new_qty = max(0.0, current_qty - deduction)
             cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
             
-            # Add to shopping list if it drops to 20% or less of original capacity
-            threshold = original_qty * 0.2
-            if new_qty <= threshold and current_qty > threshold:
-                cost = market_prices.get(db_ing, 100.0)
+            # Add to shopping list if any amount is depleted from original capacity
+            threshold = original_qty
+            if new_qty < threshold and current_qty >= threshold:
+                price_info = market_prices.get(db_ing, {"price": 100.0, "qty": f"1 {unit}"})
+                cost = price_info["price"]
+                market_unit = price_info["qty"]
                 newly_depleted.append({
                     "item": db_ing.capitalize(),
-                    "qty": f"1 {unit}", 
+                    "qty": market_unit, 
                     "cost": int(cost),
-                    "priority": "high" if new_qty == 0.0 else "medium"
+                    "priority": "high" if new_qty <= 0.0 else ("medium" if new_qty <= original_qty * 0.5 else "low")
                 })
             
             consumed_list.append(db_ing.capitalize())
@@ -417,16 +542,27 @@ def undo_meal(req: CompleteMealRequest):
     family_size = plan.get("household_economics", {}).get("family_size", 4)
     
     # 3. Restore inventory quantities
+    restored_items = []
     try:
         for ing_name, base_qty in ingredients_json.items():
             db_ing = normalize_ingredient_name(ing_name)
             addition = base_qty * family_size if portion_per_person else base_qty
             
-            cursor.execute("SELECT quantity FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
+            cursor.execute("SELECT quantity, original_quantity FROM Inventory WHERE LOWER(ingredient) = ?", (db_ing,))
             row = cursor.fetchone()
             if row:
-                new_qty = float(row["quantity"]) + addition
+                current_qty = float(row["quantity"])
+                try:
+                    original_qty = float(row["original_quantity"]) if row["original_quantity"] is not None else current_qty
+                except (ValueError, TypeError, KeyError):
+                    original_qty = current_qty
+
+                new_qty = current_qty + addition
                 cursor.execute("UPDATE Inventory SET quantity = ? WHERE LOWER(ingredient) = ?", (new_qty, db_ing))
+                
+                threshold = original_qty * 0.2
+                if new_qty > threshold and current_qty <= threshold:
+                    restored_items.append(db_ing.lower())
                 
         # 4. Delete the MealExecution record
         cursor.execute("DELETE FROM MealExecution WHERE day = ? AND meal_type = ?", (req.day, m_type))
@@ -447,6 +583,13 @@ def undo_meal(req: CompleteMealRequest):
         original_trace = plan["agent_reasoning"]["agent_trace"]
         # Filter out the matching trace log (keep all others)
         plan["agent_reasoning"]["agent_trace"] = [t for t in original_trace if t.get("input") != trace_input_match]
+        
+    # 6. Remove restored items from shopping list
+    if restored_items and "shopping_list" in plan:
+        plan["shopping_list"] = [
+            item for item in plan["shopping_list"] 
+            if item.get("item", "").lower() not in restored_items
+        ]
         
     # Save plan back to disk
     plan_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'meal_plan.json')

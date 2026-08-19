@@ -103,6 +103,49 @@ export async function addReceipt(data) {
   return response.json();
 }
 
+export async function uploadReceipt(formData) {
+  const response = await fetch('/api/receipts/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errMsg = 'Failed to process receipt image.';
+    try {
+      const err = await response.json();
+      errMsg = err.detail?.message || err.detail || errMsg;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errMsg);
+  }
+
+  return response.json();
+}
+
+export async function confirmReceipt(payload) {
+  const response = await fetch('/api/receipts/confirm', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let errMsg = 'Failed to confirm receipt save.';
+    try {
+      const err = await response.json();
+      errMsg = err.detail?.message || err.detail || errMsg;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errMsg);
+  }
+
+  return response.json();
+}
+
 export async function getPantry() {
   const response = await fetch('/api/receipts/pantry');
 
@@ -129,6 +172,45 @@ export async function getPlanInventory() {
   return response.json();
 }
 
+export async function getRecipes() {
+  const response = await fetch('/api/recipes/');
+  if (!response.ok) {
+    throw new Error('Failed to fetch recipes.');
+  }
+  return response.json();
+}
+
+export async function getRecipeStats() {
+  const response = await fetch('/api/recipes/stats');
+  if (!response.ok) {
+    throw new Error('Failed to fetch recipe statistics.');
+  }
+  return response.json();
+}
+
+export async function chatWithAssistantText(message) {
+  const response = await fetch('/api/assistant/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    let errMsg = 'Failed to process assistant request.';
+    try {
+      const err = await response.json();
+      errMsg = err.detail?.message || err.detail || errMsg;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errMsg);
+  }
+
+  return response.json();
+}
+
 export async function chatWithAssistantVoice(formData) {
   const response = await fetch('/api/assistant/voice', {
     method: 'POST',
@@ -141,7 +223,7 @@ export async function chatWithAssistantVoice(formData) {
       const err = await response.json();
       errMsg = err.detail?.message || err.detail || errMsg;
     } catch (e) {
-      // response might not be JSON if it's a 500 error
+      // ignore
     }
     throw new Error(errMsg);
   }

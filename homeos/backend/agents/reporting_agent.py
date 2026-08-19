@@ -21,7 +21,18 @@ def reporting_agent(state: AgentState):
     savings = max(0.0, budget - estimated_cost)
     
     # Assess protected/waste-prevented items
-    waste_prevented = list(set(urgent_foods + [w["item"] for w in state.get("waste_risk", []) if w["level"] in ["high", "medium"]]))
+    waste_risk_items = []
+    high_waste_items = []
+    for w in (state.get("waste_risk") or []):
+        if isinstance(w, dict):
+            item_name = w.get("item") or w.get("ingredient") or ""
+            level = w.get("level") or "low"
+            if item_name and level in ["high", "medium"]:
+                waste_risk_items.append(item_name)
+            if item_name and level == "high":
+                high_waste_items.append(item_name)
+
+    waste_prevented = list(set(urgent_foods + waste_risk_items))
 
     # Retrieve the reasoning summary generated natively by the Meal Planner Agent
     summary = state.get("reasoning_summary", "")
@@ -31,9 +42,12 @@ def reporting_agent(state: AgentState):
     # Calculate overall nutrition score average across the plan
     plan_days = state.get("weekly_plan", {})
     scores = []
-    for day in plan_days.values():
-        for meal in day.values():
-            scores.append(meal.get("nutrition_score", 80))
+    if isinstance(plan_days, dict):
+        for day in plan_days.values():
+            if isinstance(day, dict):
+                for meal in day.values():
+                    if isinstance(meal, dict):
+                        scores.append(meal.get("nutrition_score", 80))
     avg_nut = int(sum(scores) / len(scores)) if scores else 80
 
     # Format the final report structure matching the API contracts
@@ -51,7 +65,7 @@ def reporting_agent(state: AgentState):
         },
         "agent_reasoning": {
             "urgent_foods_used": urgent_foods,
-            "high_waste_foods_used": [w["item"] for w in state.get("waste_risk", []) if w["level"] == "high"],
+            "high_waste_foods_used": high_waste_items,
             "reflection_result": state.get("reflection_result", {}),
             "reasoning_summary": summary,
             "agent_trace": state.get("agent_trace", [])

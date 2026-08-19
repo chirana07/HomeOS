@@ -17,14 +17,19 @@ def budget_agent(state: AgentState):
     inventory = state.get("inventory", [])
     inventory_names = set()
     for item in inventory:
-        try:
-            qty = float(item.get("quantity", 1.0))
-            orig_qty = float(item.get("original_quantity", qty))
-        except (ValueError, TypeError):
-            qty = 1.0
-            orig_qty = 1.0
-        if qty > (orig_qty * 0.2):
-            inventory_names.add(item["name"].lower())
+        if isinstance(item, str):
+            inventory_names.add(item.lower())
+        elif isinstance(item, dict):
+            name = (item.get("ingredient") or item.get("name") or "").lower()
+            if name:
+                try:
+                    qty = float(item.get("quantity", 1.0))
+                    orig_qty = float(item.get("original_quantity", qty))
+                except (ValueError, TypeError):
+                    qty = 1.0
+                    orig_qty = 1.0
+                if qty > (orig_qty * 0.2):
+                    inventory_names.add(name)
     
     # Load prices
     prices_file = os.path.join(prompt_dir, 'data', 'prices.csv')
@@ -33,10 +38,14 @@ def budget_agent(state: AgentState):
         with open(prices_file, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                market_prices[row["item"].lower()] = {
-                    "price": float(row["price"]),
-                    "qty": row["unit"]
-                }
+                item_key = (row.get("ingredient") or row.get("item") or "").strip().lower()
+                price_val = float(row.get("price_per_unit") or row.get("price") or 0.0)
+                unit_val = row.get("unit") or row.get("qty") or "1 unit"
+                if item_key:
+                    market_prices[item_key] = {
+                        "price": price_val,
+                        "qty": unit_val
+                    }
                 
     # Load recipes ingredients map
     recipes_file = os.path.join(prompt_dir, 'data', 'recipes.csv')
@@ -79,21 +88,48 @@ def budget_agent(state: AgentState):
             updated_plan[day_key][meal_type] = meal_copy
 
     # Construct the shopping list
+    shopping_list_items = set(missing_set)
+    for item in inventory:
+        if isinstance(item, dict):
+            try:
+                name = (item.get("ingredient") or item.get("name") or "").lower()
+                qty = float(item.get("quantity", 0.0))
+                orig = float(item.get("original_quantity", qty))
+                if name and orig > 0 and qty < orig:
+                    shopping_list_items.add(name)
+            except (ValueError, TypeError):
+                pass
+
     shopping_list = []
     total_cost = 0.0
     
-    for ing in sorted(list(missing_set)):
+    for ing in sorted(list(shopping_list_items)):
         price_info = market_prices.get(ing, {"price": 100.0, "qty": "1 unit"})
         cost = price_info["price"]
         total_cost += cost
         
-        priority = "medium"
-        if ing in ["cooking oil", "onions", "garlic"]:
-            priority = "high"
-        elif ing in ["chicken"]:
-            priority = "medium"
-        else:
-            priority = "low"
+        # Calculate priority dynamically based on remaining quantity
+        priority = "high" # default to high if not in inventory
+        for item in inventory:
+            if isinstance(item, dict):
+                item_name = (item.get("ingredient") or item.get("name") or "").lower()
+                if item_name == ing:
+                    try:
+                        qty = float(item.get("quantity", 0.0))
+                        orig = float(item.get("original_quantity", qty))
+                    except (ValueError, TypeError):
+                        qty = 0.0
+                        orig = 1.0
+                    
+                    if qty <= 0.0:
+                        priority = "high"
+                        break
+                    elif qty <= orig * 0.5:
+                        priority = "medium"
+                        break
+                    else:
+                        priority = "low"
+                        break
             
         shopping_list.append({
             "item": ing.capitalize(),
