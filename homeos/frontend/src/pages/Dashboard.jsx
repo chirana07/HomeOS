@@ -33,6 +33,8 @@ import {
   Info
 } from 'lucide-react';
 import ReceiptReviewModal from '../components/ReceiptReviewModal';
+import ShoppingListModal from '../components/ShoppingListModal';
+import LiveAgentStream from '../components/LiveAgentStream';
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
@@ -58,9 +60,60 @@ export default function Dashboard() {
   const [showBriefSummary, setShowBriefSummary] = useState(false);
   const [isPlannerExpanded, setIsPlannerExpanded] = useState(false);
 
+  // Commercial Feature States
+  const [isShoppingModalOpen, setIsShoppingModalOpen] = useState(false);
+  const [streamData, setStreamData] = useState(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [selectedDiets, setSelectedDiets] = useState(['Halal']);
+
   // Household Planner State
   const [budget, setBudget] = useState(10000);
   const [familySize, setFamilySize] = useState(4);
+
+  const toggleDiet = (diet) => {
+    setSelectedDiets(prev => 
+      prev.includes(diet) ? prev.filter(d => d !== diet) : [...prev, diet]
+    );
+  };
+
+  const handleGeneratePlanWithStream = async () => {
+    setIsStreaming(true);
+    setStreamData({ agent: "Coordinator", status: "Initializing multi-agent workflow...", progress: 5 });
+
+    // Connect to SSE stream endpoint
+    try {
+      const response = await fetch('/api/stream/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ budget, family_size: familySize, dietary_restrictions: selectedDiets })
+      });
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value);
+        const lines = text.split('\n\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.replace('data: ', ''));
+              setStreamData(data);
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("SSE stream error fallback", e);
+    } finally {
+      setIsStreaming(false);
+    }
+
+    // Trigger full plan generation
+    generateNewPlan(budget, familySize);
+  };
 
   // Set greeting based on time of day
   useEffect(() => {
@@ -329,6 +382,33 @@ export default function Dashboard() {
                 <span className="text-[10px] text-slate-400">Recipe ingredient quantities scaled by {familySize}x</span>
               </div>
 
+              {/* Dietary Preferences Selector */}
+              <div className="bg-[#090b14] border border-white/[0.08] p-4 rounded-2xl flex flex-col gap-2">
+                <span className="text-xs font-bold text-white flex items-center space-x-1.5">
+                  <Leaf className="w-4 h-4 text-emerald-400" />
+                  <span>Dietary Restrictions & Custom Filters</span>
+                </span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['Halal', 'Vegan', 'Vegetarian', 'Gluten-Free', 'Keto', 'Diabetic-Friendly'].map((diet) => {
+                    const isSelected = selectedDiets.includes(diet);
+                    return (
+                      <button
+                        key={diet}
+                        type="button"
+                        onClick={() => toggleDiet(diet)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected
+                            ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-md shadow-cyan-500/10'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : '+ '} {diet}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Slider & Budget */}
               <div className="bg-[#090b14] border border-white/[0.08] p-4 rounded-2xl flex flex-col justify-between gap-3">
                 <div className="flex items-center justify-between">
@@ -367,17 +447,19 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <LiveAgentStream stepData={streamData} isStreaming={isStreaming} />
+
             <button
-              onClick={() => generateNewPlan(budget, familySize)}
-              disabled={isThinking}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-2xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+              onClick={handleGeneratePlanWithStream}
+              disabled={isThinking || isStreaming}
+              className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-2xl transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2"
             >
-              {isThinking ? (
+              {isThinking || isStreaming ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              <span>Generate Optimized Plan (LKR {budget.toLocaleString()} • {familySize}P)</span>
+              <span>Generate Commercial Plan (LKR {budget.toLocaleString()} • {familySize}P • {selectedDiets.join(', ') || 'Standard'})</span>
             </button>
           </div>
         )}
@@ -468,9 +550,12 @@ export default function Dashboard() {
               <ShoppingBag className="w-5 h-5 text-indigo-400" />
               <h3 className="text-base font-bold text-white">Shopping Status</h3>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              🛒 {currentPlan?.shopping_summary?.total_attention_count || currentPlan?.shopping_list?.length || 0} items need attention
-            </span>
+            <button
+              onClick={() => setIsShoppingModalOpen(true)}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white transition-all shadow-md flex items-center space-x-1.5"
+            >
+              <span>Export List (PDF / WA)</span>
+            </button>
           </div>
 
           {(!currentPlan?.shopping_summary && (!currentPlan?.shopping_list || currentPlan.shopping_list.length === 0)) ||
@@ -766,6 +851,13 @@ export default function Dashboard() {
       <ReceiptReviewModal
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
+      />
+
+      {/* Commercial Shopping List Export Modal */}
+      <ShoppingListModal
+        isOpen={isShoppingModalOpen}
+        onClose={() => setIsShoppingModalOpen(false)}
+        shoppingList={currentPlan?.shopping_list || []}
       />
     </div>
   );

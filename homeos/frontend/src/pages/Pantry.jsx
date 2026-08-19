@@ -15,6 +15,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import ReceiptReviewModal from '../components/ReceiptReviewModal';
+import QuickAddModal from '../components/QuickAddModal';
 
 export default function Pantry() {
   const { inventory, isLoading, refreshData } = useApp();
@@ -22,6 +23,7 @@ export default function Pantry() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedItemForModal, setSelectedItemForModal] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
   const categories = ['All', 'Vegetables', 'Fruits', 'Proteins', 'Dairy', 'Grains', 'Household', 'Pantry Essentials'];
 
@@ -81,13 +83,21 @@ export default function Pantry() {
           <p className="text-xs text-slate-400 mt-1">Live SQLite Inventory Records & USDA Freshness Status</p>
         </div>
 
-        <button
-          onClick={() => setIsReceiptModalOpen(true)}
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 self-start sm:self-auto"
-        >
-          <Camera className="w-4 h-4" />
-          Scan Receipt
-        </button>
+        <div className="flex items-center space-x-3 self-start sm:self-auto">
+          <button
+            onClick={() => setIsQuickAddOpen(true)}
+            className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+          >
+            <span>+ Quick Add Item</span>
+          </button>
+          <button
+            onClick={() => setIsReceiptModalOpen(true)}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+          >
+            <Camera className="w-4 h-4" />
+            Scan Receipt
+          </button>
+        </div>
       </div>
 
       {/* Intelligence Banner */}
@@ -254,6 +264,12 @@ export default function Pantry() {
       <ReceiptReviewModal
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
+      />
+
+      {/* Manual Quick Add Modal */}
+      <QuickAddModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
       />
     </div>
   );

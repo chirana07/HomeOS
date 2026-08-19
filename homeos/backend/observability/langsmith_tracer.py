@@ -12,11 +12,13 @@ def init_langsmith_tracing():
     """
     Export environment variables immediately for native LangSmith auto-tracing.
     """
-    os.environ["LANGCHAIN_TRACING_V2"] = settings.LANGCHAIN_TRACING_V2
     if settings.LANGCHAIN_API_KEY:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGCHAIN_API_KEY"] = settings.LANGCHAIN_API_KEY
-    os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT
-    os.environ["LANGSMITH_ENDPOINT"] = settings.LANGSMITH_ENDPOINT
+        os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT
+        os.environ["LANGSMITH_ENDPOINT"] = settings.LANGSMITH_ENDPOINT
+    else:
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 # Run initialization immediately on import
 init_langsmith_tracing()
@@ -33,7 +35,6 @@ def trace_agent_node(agent_name: str):
     Decorator for LangGraph agent nodes creating a child span in LangSmith and persisting internal metrics.
     """
     def decorator(func: Callable):
-        @traceable(name=f"Agent: {agent_name.capitalize()}", run_type="chain")
         @functools.wraps(func)
         def wrapper(state: Dict[str, Any], *args, **kwargs):
             t_start = time.time()
@@ -60,15 +61,21 @@ def trace_agent_node(agent_name: str):
                     completion_tokens=50
                 )
                 
-                ObservabilityRepository.record_agent_metric({
-                    "run_id": run_id,
-                    "agent_name": agent_name,
-                    "duration_ms": duration_ms,
-                    "status": status,
-                    "tokens_used": tokens_used,
-                    "cost_usd": cost_usd
-                })
+                try:
+                    ObservabilityRepository.record_agent_metric({
+                        "run_id": run_id,
+                        "agent_name": agent_name,
+                        "duration_ms": duration_ms,
+                        "status": status,
+                        "tokens_used": tokens_used,
+                        "cost_usd": cost_usd
+                    })
+                except Exception:
+                    pass
 
             return result
+
+        if settings.LANGCHAIN_API_KEY:
+            return traceable(name=f"Agent: {agent_name.capitalize()}", run_type="chain")(wrapper)
         return wrapper
     return decorator

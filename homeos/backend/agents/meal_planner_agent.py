@@ -29,7 +29,8 @@ def meal_planner_agent(state: AgentState):
         "inventory_state": pantry,
         "waste_state": waste_risk,
         "recipe_candidates": recipes,
-        "meal_history": meal_history
+        "meal_history": meal_history,
+        "dietary_restrictions": state.get("dietary_restrictions", [])
     }, indent=2)
 
     # Call Gemini Flash central client with JSON mode

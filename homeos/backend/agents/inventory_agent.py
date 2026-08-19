@@ -21,16 +21,26 @@ def inventory_agent(state: AgentState):
     resolved_inventory = []
     urgent_foods = []
     
-    for name in user_inv:
-        name_lower = name.lower()
+    for item in user_inv:
+        if isinstance(item, dict):
+            name = item.get("ingredient") or item.get("name") or ""
+        elif isinstance(item, str):
+            name = item
+        else:
+            name = str(item)
+            
+        name_lower = name.lower().strip()
+        if not name_lower:
+            continue
+
         if name_lower in db_inventory_map:
             meta = db_inventory_map[name_lower]
             resolved_inventory.append(meta)
-            # Identify carrots as expiring within 3 days (based on seeded date 2026-06-23)
-            if meta["name"].lower() == "carrots":
+            # Tag urgent perishables (e.g. carrots, milk, tomatoes, chicken, spinach)
+            if any(k in name_lower for k in ["carrots", "milk", "tomatoes", "spinach", "chicken"]):
                 urgent_foods.append(meta["name"])
         else:
-            fallback_meta = {"name": name, "quantity": "1", "unit": "unit", "expiry_date": "2026-07-15"}
+            fallback_meta = {"name": name, "quantity": "1", "unit": "unit", "expiry_date": "2026-08-25"}
             resolved_inventory.append(fallback_meta)
             
     trace_entry = {

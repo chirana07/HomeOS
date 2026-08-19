@@ -92,6 +92,41 @@ def init_db():
         )
     """)
     
+    # Create users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL UNIQUE,
+            full_name TEXT NOT NULL,
+            hashed_password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Create user_preferences table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id INTEGER PRIMARY KEY,
+            currency TEXT DEFAULT 'LKR',
+            dietary_preferences TEXT DEFAULT '[]',
+            household_size INTEGER DEFAULT 4,
+            monthly_budget REAL DEFAULT 15000.0,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    # Seed default commercial admin user
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        from tools.security import hash_password
+        admin_pass = hash_password("password123")
+        cursor.execute("INSERT INTO users (email, full_name, hashed_password) VALUES (?, ?, ?)",
+                       ("admin@homeos.ai", "Commercial Admin", admin_pass))
+        admin_id = cursor.lastrowid
+        cursor.execute("INSERT INTO user_preferences (user_id, currency, dietary_preferences, household_size, monthly_budget) VALUES (?, ?, ?, ?, ?)",
+                       (admin_id, "LKR", '["Halal"]', 4, 15000.0))
+        conn.commit()
+    
     # Create monthly_expenses table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS monthly_expenses (

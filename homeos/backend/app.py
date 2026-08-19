@@ -19,6 +19,9 @@ from routes import plan
 from routes import receipts
 from routes import assistant
 from routes import recipes
+from routes import auth
+from routes import analytics
+from routes import stream
 from observability.database.repository import init_obs_db
 from observability.langsmith_tracer import init_langsmith_tracing
 from observability.routes.router import router as obs_router
@@ -76,7 +79,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="HomeOS Economic Intelligence API", 
-    version="0.1.0", 
+    version="1.0.0 Commercial", 
+    description="Enterprise Household Economic Intelligence Platform with Multi-Agent Intelligence and Spoilage Prevention.",
     lifespan=lifespan
 )
 
@@ -90,6 +94,9 @@ app.add_middleware(
 )
 
 # API routes
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Financial Analytics"])
+app.include_router(stream.router, prefix="/api/stream", tags=["Real-time Streaming"])
 app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
 app.include_router(receipts.router, prefix="/api/receipts", tags=["Receipts"])
 app.include_router(assistant.router, prefix="/api/assistant", tags=["Assistant"])

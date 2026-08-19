@@ -12,6 +12,8 @@ class AgentState(TypedDict):
     budget: float
     family_size: int
     inventory: List[Dict[str, Any]]
+    dietary_restrictions: List[str]
+    currency_symbol: str
     
     # State items computed by sub-agents
     urgent_foods: List[str]

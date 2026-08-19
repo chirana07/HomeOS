@@ -6,7 +6,7 @@ import uuid
 import sqlite3
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any
 from graph.workflow import compiled_graph
 from tools.db import get_db_connection
 from logger import log_api_request, log_api_error
@@ -21,7 +21,8 @@ router = APIRouter()
 class GenerationRequest(BaseModel):
     budget: float
     family_size: int
-    inventory: List[str]
+    inventory: Optional[List[Any]] = None
+    dietary_restrictions: Optional[List[str]] = []
 
 # Global variable fallback memory for trace and plan
 _last_plan = None
@@ -105,11 +106,24 @@ def generate_plan(req: GenerationRequest):
         print(f"Error resetting database state: {e}")
         
     run_id = f"run_{uuid.uuid4().hex[:12]}"
+    inv_input = req.inventory
+    if not inv_input:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT ingredient FROM Inventory")
+            inv_input = [r["ingredient"] for r in cursor.fetchall()]
+            conn.close()
+        except Exception:
+            inv_input = ["rice", "chicken", "eggs", "tomatoes", "milk"]
+
     initial_state = {
         "run_id": run_id,
         "budget": req.budget,
         "family_size": req.family_size,
-        "inventory": req.inventory,
+        "inventory": inv_input,
+        "dietary_restrictions": req.dietary_restrictions or [],
+        "currency_symbol": "Rs. ",
         "urgent_foods": [],
         "waste_risk": [],
         "recipes": [],
@@ -205,7 +219,7 @@ def generate_plan(req: GenerationRequest):
                     method="POST",
                     route="/api/plan/generate",
                     steps=[
-                        ("Inventory Loaded", f"{len(req.inventory)} items"),
+                        ("Inventory Loaded", f"{len(inv_input)} items"),
                         ("LangGraph Agents Workflow", "Coordinator -> Inventory -> Waste -> Recipe -> Reflection -> Meal Plan"),
                         ("Plan Compilation", "Meal Plan compiled successfully")
                     ],

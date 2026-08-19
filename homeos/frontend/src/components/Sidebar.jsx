@@ -1,13 +1,17 @@
 // Sidebar.jsx - Premium Refined Navigation
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Layers, BookOpen, Bot, Camera, Route, Cpu } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Layers, BookOpen, Bot, Camera, Route, Cpu, TrendingDown, LogOut, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const primaryItems = [
     { path: '/', name: 'Dashboard', icon: LayoutDashboard },
+    { path: '/analytics', name: 'Financial Analytics', icon: TrendingDown },
     { path: '/pantry', name: 'Pantry Cabinet', icon: Layers },
     { path: '/recipes', name: 'Recipe Library', icon: BookOpen },
   ];
@@ -17,6 +21,11 @@ export default function Sidebar() {
     { path: '/receipts', name: 'Receipt Review', icon: Camera },
     { path: '/trace', name: 'Agent Trace', icon: Route },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const renderNavGroup = (title, items) => (
     <div className="mb-4">
@@ -56,7 +65,7 @@ export default function Sidebar() {
           </div>
           <div>
             <div className="font-black text-lg leading-tight tracking-tight text-white">HomeOS</div>
-            <div className="text-[10px] text-indigo-400 font-bold tracking-wider uppercase mt-0.5">Household AI OS</div>
+            <div className="text-[10px] text-indigo-400 font-bold tracking-wider uppercase mt-0.5">SaaS SaaS Platform</div>
           </div>
         </div>
 
@@ -67,17 +76,25 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* Footer Status */}
-      <div className="p-4 border-t border-[#1e293b]">
-        <div className="flex items-center gap-2.5 bg-[#151b2e] border border-white/[0.08] rounded-xl p-3">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <div className="flex flex-col">
-            <span className="text-xs text-white font-bold">SQLite Engine Synced</span>
-            <span className="text-[10px] text-slate-400">70 Recipes • 40 Pantry Items</span>
+      {/* Footer Status & User Profile */}
+      <div className="p-4 border-t border-[#1e293b] space-y-3">
+        <div className="flex items-center justify-between bg-[#151b2e] border border-white/[0.08] rounded-xl p-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
+              <User className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs text-white font-bold truncate">{user?.full_name || 'Commercial Admin'}</span>
+              <span className="text-[10px] text-slate-400 truncate">{user?.email || 'admin@homeos.ai'}</span>
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

@@ -18,8 +18,17 @@ def waste_agent(state: AgentState):
     waste_risk = []
     
     for item in inventory:
-        name = item["name"]
-        name_lower = name.lower()
+        if isinstance(item, str):
+            name = item
+        elif isinstance(item, dict):
+            name = item.get("ingredient") or item.get("name") or ""
+        else:
+            name = str(item)
+
+        name_lower = name.lower().strip()
+        if not name_lower:
+            continue
+
         if name_lower in history_map:
             record = history_map[name_lower]
             score = float(record["waste_score"])
@@ -40,9 +49,16 @@ def waste_agent(state: AgentState):
     # Sort waste risk descending
     waste_risk.sort(key=lambda x: x["waste_score"], reverse=True)
     
+    inventory_names_list = []
+    for item in inventory:
+        if isinstance(item, str):
+            inventory_names_list.append(item)
+        elif isinstance(item, dict):
+            inventory_names_list.append(item.get("ingredient") or item.get("name") or "")
+
     trace_entry = {
         "agent": "Waste Agent",
-        "input": f"Pantry stock items: {[i['name'] for i in inventory]}",
+        "input": f"Pantry stock items: {inventory_names_list}",
         "decision": "Successfully calculated waste risk from SQLite history tables.",
         "output": f"Waste risk rankings: {waste_risk}"
     }

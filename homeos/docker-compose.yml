@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  homeos-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: homeos_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-homeos_commercial_secret_2026}
+    volumes:
+      - ./backend/data:/app/backend/data
+      - ./backend/vector_db:/app/backend/vector_db
+
+networks:
+  default:
+    name: homeos-network

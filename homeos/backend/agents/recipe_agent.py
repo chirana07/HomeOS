@@ -11,8 +11,16 @@ def recipe_agent(state: AgentState):
     """
     Recipe Retrieval Agent searches Qdrant vector database using text-embedding-004. (No LLM, Python Only)
     """
-    pantry_names = [item["name"] for item in state.get("inventory", [])]
-    urgent_names = state.get("urgent_foods", [])
+    pantry_names = []
+    for item in state.get("inventory", []):
+        if isinstance(item, str):
+            pantry_names.append(item)
+        elif isinstance(item, dict):
+            name = item.get("ingredient") or item.get("name")
+            if name:
+                pantry_names.append(name)
+                
+    urgent_names = state.get("urgent_foods") or []
     
     # RAG search query prioritizing urgent perishables
     query_terms = urgent_names + [name for name in pantry_names if name not in urgent_names]
@@ -20,7 +28,7 @@ def recipe_agent(state: AgentState):
     
     # Query recipes from Qdrant vector DB
     res = search_recipes(search_query)
-    recipes_list = res.get("recipes", [])
+    recipes_list = (res.get("recipes") if isinstance(res, dict) else []) or []
     
     trace_entry = {
         "agent": "Recipe Retrieval Agent",
